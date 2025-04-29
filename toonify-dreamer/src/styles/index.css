@@ -1,0 +1,11 @@
+
+/* Custom shadow for a playful, paper-cutout effect */
+.playful-shadow {
+  box-shadow: 3px 3px 0 rgba(165, 121, 95, 0.5);
+  transition: all 0.2s ease;
+}
+
+.playful-shadow:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 rgba(165, 121, 95, 0.5);
+} 

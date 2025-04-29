@@ -1,0 +1,9 @@
+# Project Planning
+PROJECT_PLAN.md 
+
+# General ignores
+node_modules/
+dist/
+.env*
+*.local
+*.log
