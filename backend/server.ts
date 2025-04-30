@@ -28,9 +28,10 @@ const client = new OpenAI({ apiKey: openaiApiKey });
 
 // --- Middleware ---
 
+
 // !! IMPORTANT: Apply CORS *before* route handlers that need it !!
 const corsOptions = {
-  origin: process.env.BETTER_AUTH_URL || 'http://localhost:8080',
+  origin: process.env.BETTER_AUTH_URL || 'http://localhost:8080' || 'https://toonlyai.com' || 'https://www.toonlyai.com',
   credentials: true
 };
 app.use(cors(corsOptions));

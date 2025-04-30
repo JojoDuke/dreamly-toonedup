@@ -3,11 +3,32 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Pool } from 'pg';
 import { OpenAI, toFile } from 'openai';
 import { auth } from '../backend/lib/auth.js'; // Adjust path if needed
-import { runMiddleware, corsMiddleware } from '../api/lib/runMiddleware'; // Import new helpers
+import cors from 'cors'; // Import cors directly
 import dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config(); // Vercel uses its own env var system, but this helps locally
+
+// --- CORS Configuration ---
+const trustedOrigins = [
+  'http://localhost:8080',
+  'https://toonlyai.com',
+  'https://www.toonlyai.com'
+].filter(Boolean) as string[];
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || trustedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
+  allowedHeaders: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+};
+const corsHandler = cors(corsOptions);
 
 // --- Configuration ---
 // Initialize DB Pool (Consider moving to a shared lib or using Vercel helpers if available)
@@ -23,22 +44,24 @@ if (!openaiApiKey) {
 const client = new OpenAI({ apiKey: openaiApiKey });
 
 // --- Vercel Serverless Function Handler ---
-// Remove allowCors wrapper
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Run the CORS middleware
-  await runMiddleware(req, res, corsMiddleware);
 
-  // The cors middleware handles OPTIONS requests automatically
-  // If the request method is OPTIONS, the middleware finishes the response
-  // and we don't need to proceed further in the handler.
-  if (req.method === 'OPTIONS') {
-      // runMiddleware resolves after the middleware calls next() or ends the response.
-      // If corsMiddleware ended the response (for OPTIONS), we might not need to explicitly return.
-      // However, it's safer to return to prevent any further code execution.
-      return; 
+  // Manually run CORS middleware
+  await new Promise((resolve, reject) => {
+    corsHandler(req as any, res as any, (result: any) => {
+      if (result instanceof Error) {
+        return reject(result);
+      }
+      return resolve(result);
+    });
+  });
+
+  // If CORS handled OPTIONS or sent headers, stop execution
+  if (req.method === 'OPTIONS' || res.headersSent) {
+    return;
   }
 
-  // --- Allow POST method only (Now checked *after* CORS) ---
+  // --- Allow POST method only ---
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
