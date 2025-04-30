@@ -1,7 +1,9 @@
 import { toast } from "sonner";
+import dotenv from "dotenv";
+dotenv.config({ path: '.env.local' });
 
 // URL of your backend server endpoint
-const BACKEND_API_URL = 'https://toonify-dreamer.onrender.com/api/edit-image'; // Hardcode Render URL
+const BACKEND_API_URL = `${process.env.BETTER_AUTH_URL}/api/edit-image`;
 
 export const imageEditService = {
   // Renamed function and added prompt parameter

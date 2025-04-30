@@ -25,6 +25,7 @@
   "dependencies": {
     "better-auth": "^1.2.7",
     "cors": "^2.8.5",
+    "dodopayments": "^1.19.0",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "openai": "^4.61.0",

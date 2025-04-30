@@ -7,37 +7,26 @@ import { Pool } from 'pg';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.js';
 
-// console.log("[server.ts] Script start."); // Removed
 
 // --- Configuration ---
 dotenv.config({ path: '.env.local' });
-// console.log("[server.ts] dotenv configured."); // Removed
 
-// console.log(`[server.ts] DATABASE_URL is set: ${!!process.env.DATABASE_URL}`); // Removed
-// console.log("[server.ts] Creating main database pool..."); // Removed
 // Initialize PostgreSQL Pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
-// console.log("[server.ts] Main database pool created."); // Removed
 
-// console.log("[server.ts] Initializing Express app..."); // Removed
 const app = express();
 const PORT = 3001;
-// console.log(`[server.ts] PORT determined: ${PORT}`); // Removed
 const openaiApiKey = process.env.OPENAI_API_KEY;
 
 if (!openaiApiKey) {
   console.error("[server.ts] Error: OPENAI_API_KEY is not set. Exiting.");
   process.exit(1);
 }
-// console.log("[server.ts] OPENAI_API_KEY check passed."); // Removed
 
-// console.log("[server.ts] Creating OpenAI client..."); // Removed
 const client = new OpenAI({ apiKey: openaiApiKey });
-// console.log("[server.ts] OpenAI client created."); // Removed
 
-// console.log("[server.ts] Configuring middleware (CORS, JSON)..."); // Removed
 // --- Middleware ---
 
 // Define trusted origins

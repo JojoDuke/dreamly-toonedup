@@ -34,9 +34,10 @@ import CountUp from "react-countup";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Star as StarIcon } from "lucide-react";
+import dotenv from "dotenv";
+dotenv.config({ path: '.env.local' });
 
-// Get API Base URL from environment variable - KEEPING THIS HARDCODED FOR NOW PER USER REQ
-const BACKEND_BASE_URL = 'https://toonify-dreamer.onrender.com'; 
+const BACKEND_BASE_URL = process.env.BETTER_AUTH_URL; 
 
 const stylePrompts: Record<string, string> = {
   ghibli: "Turn this image into Ghibli anime style",
@@ -276,7 +277,7 @@ const Index = () => {
         toast.error(error.message || "Failed to send magic link. Please try again.");
       } else {
         console.log("[Frontend Index] Magic link request success:", data);
-        toast.success("Magic link sent! Check your email to sign in.");
+        toast.success("Magic link sent! Check your email (including Spam/Promotions) to sign in.");
         setIsAuthModalOpen(false);
         setEmail("");
       }

@@ -11,7 +11,7 @@ const authDbPool = new Pool({
     connectionString: process.env.DATABASE_URL,
 });
 export const auth = betterAuth({
-    baseURL: "https://toonify-dreamer.onrender.com",
+    baseURL: process.env.BETTER_AUTH_URL,
     advanced: {
         crossSubDomainCookies: {
           enabled: true,
