@@ -233,7 +233,7 @@ const Index = () => {
     try {
       const { data, error } = await authClient.signIn.magicLink({
         email,
-        callbackURL: "https://toonlyai.com/",
+        callbackURL: "http://localhost:8080",
       });
 
       if (error) {
