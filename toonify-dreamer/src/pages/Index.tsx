@@ -35,8 +35,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Star as StarIcon } from "lucide-react";
 
-// Remove environment variable logic
-// const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || ''; 
+// Get API Base URL from environment variable - KEEPING THIS HARDCODED FOR NOW PER USER REQ
+const BACKEND_BASE_URL = 'https://toonify-dreamer.onrender.com'; 
 
 const stylePrompts: Record<string, string> = {
   ghibli: "Turn this image into Ghibli anime style",
@@ -59,26 +59,54 @@ const Index = () => {
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
+  const [sessionState, setSessionState] = useState<{ 
+    data: Awaited<ReturnType<typeof authClient.getSession>>['data'] | null; 
+    isLoading: boolean; 
+    error: any | null; 
+  }>({ data: null, isLoading: true, error: null });
   
-  // Use the BetterAuth hook to get the session state
-  const { 
-    data: sessionData, 
-    isPending: isSessionLoading,
-    error: sessionError,
-  } = authClient.useSession();
+  // Fetch session manually on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSession = async () => {
+      console.log("[Frontend Index] Attempting to fetch session...");
+      setSessionState({ data: null, isLoading: true, error: null });
+      try {
+        const { data, error } = await authClient.getSession();
+        if (isMounted) {
+          if (error) {
+            console.error("[Frontend Index] Error fetching session:", error);
+            setSessionState({ data: null, isLoading: false, error });
+          } else {
+            console.log("[Frontend Index] Session fetched successfully:", data ? { session: !!data.session, user: !!data.user } : null);
+            setSessionState({ data, isLoading: false, error: null });
+          }
+        }
+      } catch (catchError) {
+        console.error("[Frontend Index] Exception fetching session:", catchError);
+        if (isMounted) {
+          setSessionState({ data: null, isLoading: false, error: catchError });
+        }
+      }
+    };
+    fetchSession();
+    return () => { isMounted = false; }; // Cleanup function
+  }, []); // Empty dependency array ensures it runs only once on mount
 
-  // Determine authentication status and user data
-  const session = sessionData?.session;
-  const user = sessionData?.user;
+  // Derive authentication status from manual session state
+  const session = sessionState.data?.session;
+  const user = sessionState.data?.user;
   const isAuthenticated = !!session;
   const userEmail = user?.email;
+  const isSessionLoading = sessionState.isLoading; // Use our state for loading
 
-  // Fetch credits when authentication status changes
+  // Fetch credits when authentication status changes (or session loads)
   useEffect(() => {
     let currentCredits = 0;
     if (isAuthenticated) {
       setIsLoadingCredits(true);
-      fetch('https://toonify-dreamer.onrender.com/api/user/credits', { credentials: 'include' })
+      console.log("[Frontend Index] Auth successful, fetching credits...");
+      fetch(`${BACKEND_BASE_URL}/api/user/credits`, { credentials: 'include' })
         .then(res => {
           if (!res.ok) { throw new Error(`Failed to fetch credits: ${res.statusText}`); }
           return res.json();
@@ -100,12 +128,17 @@ const Index = () => {
           setIsLoadingCredits(false);
         });
     } else {
-      prevCreditsRef.current = credits;
-      setCredits(0);
-      currentCredits = 0;
-      setIsLoadingCredits(false);
+        // If not authenticated, but session isn't loading anymore, clear credits
+        if (!isSessionLoading) {
+            console.log("[Frontend Index] Not authenticated or session load finished, clearing credits.");
+            prevCreditsRef.current = credits;
+            setCredits(0);
+            currentCredits = 0;
+            setIsLoadingCredits(false);
+        }
     }
-  }, [isAuthenticated]);
+    // Depend on isAuthenticated and isSessionLoading to trigger correctly
+  }, [isAuthenticated, isSessionLoading]); 
 
   // Update previous credits ref after successful transform fetch
   useEffect(() => {
@@ -117,7 +150,8 @@ const Index = () => {
     if (!isAuthenticated) return;
     setIsLoadingCredits(true);
     try {
-      const res = await fetch('https://toonify-dreamer.onrender.com/api/user/credits', { credentials: 'include' });
+      console.log("[Frontend Index] Refreshing credits...");
+      const res = await fetch(`${BACKEND_BASE_URL}/api/user/credits`, { credentials: 'include' });
       if (!res.ok) {
         throw new Error(`Failed to fetch credits: ${res.statusText}`);
       }
@@ -163,6 +197,7 @@ const Index = () => {
     setProcessedImageUrl(null);
     
     try {
+      console.log("[Frontend Index] Calling imageEditService...");
       const editedImageUrl = await imageEditService.transformImageWithPrompt(selectedFile, prompt);
       
       setProcessedImageUrl(editedImageUrl);
@@ -172,7 +207,7 @@ const Index = () => {
       await refreshCredits(); 
 
     } catch (error: any) {
-      console.error("Error processing image:", error);
+      console.error("[Frontend Index] Error processing image:", error);
       if (error.status === 402) {
         setIsPricingModalOpen(true);
       } else if (error.status === 401) {
@@ -228,26 +263,25 @@ const Index = () => {
     }
 
     setIsSendingMagicLink(true);
-    console.log(`Attempting magic link sign-in for: ${email}`);
-
+    console.log(`[Frontend Index] Requesting magic link for: ${email}`);
     try {
+      // Ensure callback URL is correct
       const { data, error } = await authClient.signIn.magicLink({
         email,
         callbackURL: "http://localhost:8080",
       });
 
       if (error) {
-        console.error("Magic link error:", error);
+        console.error("[Frontend Index] Magic link request error:", error);
         toast.error(error.message || "Failed to send magic link. Please try again.");
       } else {
-        console.log("Magic link success:", data);
+        console.log("[Frontend Index] Magic link request success:", data);
         toast.success("Magic link sent! Check your email to sign in.");
         setIsAuthModalOpen(false);
         setEmail("");
       }
-
     } catch (error) {
-      console.error("Error sending magic link:", error);
+      console.error("[Frontend Index] Error sending magic link:", error);
       toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setIsSendingMagicLink(false);
@@ -256,11 +290,14 @@ const Index = () => {
 
   const handleSignOut = async () => {
     try {
+      console.log("[Frontend Index] Signing out...");
       await authClient.signOut();
-      // The useSession hook will automatically update, causing re-render
+      console.log("[Frontend Index] Sign out successful, clearing session state.");
+      // Manually clear session state after successful sign out
+      setSessionState({ data: null, isLoading: false, error: null });
       toast.success("Signed out successfully!");
     } catch (error) {
-      console.error("Sign out error:", error);
+      console.error("[Frontend Index] Sign out error:", error);
       toast.error("Failed to sign out.");
     }
   };

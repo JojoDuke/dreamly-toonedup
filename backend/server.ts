@@ -63,15 +63,11 @@ const corsOptions: cors.CorsOptions = {
 app.use(cors(corsOptions));
 
 // --- BetterAuth ---
-// console.log("[server.ts] Configuring BetterAuth handler..."); // Removed
 app.all('/api/auth/{*any}', toNodeHandler(auth));
-// console.log("[server.ts] BetterAuth handler configured."); // Removed
 
 // Middleware to parse JSON request bodies
 app.use(express.json({ limit: '50mb' }));
-// console.log("[server.ts] Middleware configured."); // Removed
 
-// console.log("[server.ts] Defining API routes..."); // Removed
 // --- API Routes ---
 
 // Simple root route for health check
