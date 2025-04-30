@@ -7,24 +7,35 @@ import { Pool } from 'pg';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.js';
 
+console.log("[server.ts] Script start.");
+
 // --- Configuration ---
 dotenv.config({ path: '.env.local' });
+console.log("[server.ts] dotenv configured.");
 
+console.log(`[server.ts] DATABASE_URL is set: ${!!process.env.DATABASE_URL}`);
+console.log("[server.ts] Creating main database pool...");
 // Initialize PostgreSQL Pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
+console.log("[server.ts] Main database pool created.");
 
+console.log("[server.ts] Initializing Express app...");
 const app = express();
 const PORT = process.env.PORT || 3001;
+console.log(`[server.ts] PORT determined: ${PORT}`);
 const openaiApiKey = process.env.OPENAI_API_KEY;
 
 if (!openaiApiKey) {
-  console.error("Error: OPENAI_API_KEY is not set in the environment variables.");
+  console.error("[server.ts] Error: OPENAI_API_KEY is not set. Exiting.");
   process.exit(1);
 }
+console.log("[server.ts] OPENAI_API_KEY check passed.");
 
+console.log("[server.ts] Creating OpenAI client...");
 const client = new OpenAI({ apiKey: openaiApiKey });
+console.log("[server.ts] OpenAI client created.");
 
 // --- Middleware ---
 
@@ -51,12 +62,15 @@ const corsOptions: cors.CorsOptions = {
 app.use(cors(corsOptions));
 
 // --- BetterAuth --- 
+console.log("[server.ts] Configuring BetterAuth handler...");
 app.all('/api/auth/{*any}', toNodeHandler(auth));
+console.log("[server.ts] BetterAuth handler configured.");
 
 // Middleware to parse JSON request bodies (increase limit for base64 images)
 app.use(express.json({ limit: '50mb' })); 
+console.log("[server.ts] Middleware configured.");
 
-
+console.log("[server.ts] Defining API routes...");
 // --- API Routes ---
 
 // Simple root route for health check
@@ -269,7 +283,10 @@ app.post('/api/edit-image', (req: Request, res: Response) => {
   });
 });
 
+console.log("[server.ts] API routes defined.");
+
 // --- Start Server ---
+console.log(`[server.ts] Attempting to listen on port ${PORT}...`);
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`[server.ts] Server listening successfully on port ${PORT}`);
 });

@@ -4,10 +4,21 @@ import dotenv from "dotenv";
 import { magicLink } from "better-auth/plugins";
 import { Resend } from "resend";
 
+console.log("[auth.ts] Starting initialization...");
 
 // --- Configuration ---
 dotenv.config({ path: '.env.local' });
+console.log(`[auth.ts] DATABASE_URL is set: ${!!process.env.DATABASE_URL}`);
+console.log(`[auth.ts] RESEND_API_KEY is set: ${!!process.env.RESEND_API_KEY}`);
+console.log(`[auth.ts] BASE_URL is set: ${!!process.env.BASE_URL}`);
 
+console.log("[auth.ts] Creating database pool for auth...");
+const authDbPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+});
+console.log("[auth.ts] Database pool created.");
+
+console.log("[auth.ts] Initializing betterAuth...");
 export const auth = betterAuth({
     baseURL: process.env.BASE_URL,
     trustedOrigins: [
@@ -19,9 +30,7 @@ export const auth = betterAuth({
         sameSite: 'none',
         secure: false,
     },
-    database: new Pool({
-        connectionString: process.env.DATABASE_URL,
-    }),
+    database: authDbPool,
     emailAndPassword: { 
         enabled: true, 
       }, 
