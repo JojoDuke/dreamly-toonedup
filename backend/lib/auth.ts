@@ -9,8 +9,12 @@ import { Resend } from "resend";
 dotenv.config({ path: '.env.local' });
 
 export const auth = betterAuth({
-    baseURL: process.env.BETTER_AUTH_URL,
-    trustedOrigins: ['http://localhost:8080', 'https://usemidas.app'],
+    baseURL: process.env.BASE_URL,
+    trustedOrigins: [
+      'http://localhost:8080',
+      'https://toonlyai.com',
+      'https://www.toonlyai.com'
+    ].filter(Boolean) as string[],
     cookieOptions: {
         sameSite: 'none',
         secure: false,
