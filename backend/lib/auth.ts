@@ -28,7 +28,7 @@ export const auth = betterAuth({
     ].filter(Boolean) as string[],
     cookieOptions: {
         sameSite: 'none',
-        secure: false,
+        secure: true,
     },
     database: authDbPool,
     emailAndPassword: { 
