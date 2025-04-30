@@ -83,6 +83,7 @@ app.get('/', (req: Request, res: Response) => {
 async function handleGetUserCredits(req: Request, res: Response): Promise<void> {
   console.log(`[Credits Handler] Received request for /api/user/credits`);
   let dbClient;
+  let sessionData;
   try {
     // 1. Check authentication
     console.log(`[Credits Handler] Checking session...`);
@@ -90,7 +91,18 @@ async function handleGetUserCredits(req: Request, res: Response): Promise<void> 
     Object.entries(req.headers).forEach(([key, value]) => {
       if (value) { headers.append(key, Array.isArray(value) ? value.join(', ') : value); }
     });
-    const sessionData = await auth.api.getSession({ headers });
+    
+    // Explicitly log getSession attempt and result
+    try {
+      console.log(`[Credits Handler] Attempting auth.api.getSession...`);
+      sessionData = await auth.api.getSession({ headers });
+      console.log(`[Credits Handler] auth.api.getSession result:`, sessionData ? { session: !!sessionData.session, user: !!sessionData.user } : null);
+    } catch (authError) {
+      console.error(`[Credits Handler] Error calling auth.api.getSession:`, authError);
+      res.status(500).json({ error: 'Internal server error during authentication check.' });
+      return;
+    }
+
     if (!sessionData?.session?.userId) {
       console.log(`[Credits Handler] Unauthorized: No session/userId found.`);
       res.status(401).json({ error: 'Unauthorized' });
@@ -142,13 +154,25 @@ app.get('/api/user/credits', (req, res) => {
 // Define the async function separately
 async function handleEditImageLogic(req: Request, res: Response): Promise<void> {
   console.log(`[Edit Image Handler] Received request for /api/edit-image`);
+  let sessionData;
   // 0. Authentication & Authorization Check
   console.log(`[Edit Image Handler] Checking session...`);
   const headers = new Headers();
   Object.entries(req.headers).forEach(([key, value]) => {
     if (value) { headers.append(key, Array.isArray(value) ? value.join(', ') : value); }
   });
-  const sessionData = await auth.api.getSession({ headers });
+
+  // Explicitly log getSession attempt and result
+  try {
+    console.log(`[Edit Image Handler] Attempting auth.api.getSession...`);
+    sessionData = await auth.api.getSession({ headers });
+    console.log(`[Edit Image Handler] auth.api.getSession result:`, sessionData ? { session: !!sessionData.session, user: !!sessionData.user } : null);
+  } catch (authError) {
+    console.error(`[Edit Image Handler] Error calling auth.api.getSession:`, authError);
+    res.status(500).json({ error: 'Internal server error during authentication check.' });
+    return;
+  }
+
   if (!sessionData?.session?.userId) {
     console.log(`[Edit Image Handler] Unauthorized: No session/userId found.`);
     res.status(401).json({ error: 'Unauthorized: No active session or user ID.' });
