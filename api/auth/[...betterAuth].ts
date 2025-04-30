@@ -2,21 +2,46 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from '../../backend/lib/auth.js'; // Corrected path relative to api/auth/[...]
-import { runMiddleware, corsMiddleware } from '../lib/runMiddleware'; // Import new helpers
+import cors from 'cors'; // Import cors directly
+
+// --- CORS Configuration ---
+const trustedOrigins = [
+  'http://localhost:8080',
+  'https://toonlyai.com',
+  'https://www.toonlyai.com'
+].filter(Boolean) as string[];
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || trustedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
+  allowedHeaders: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+};
+const corsHandler = cors(corsOptions);
 
 // This single file handles all requests to /api/auth/*
 // by passing them to the BetterAuth instance's Node handler
 
-// Remove allowCors wrapper
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Run the CORS middleware first
-  await runMiddleware(req, res, corsMiddleware);
 
-  // If CORS handled an OPTIONS request, it might have already sent a response.
-  // Check if headers were sent before proceeding.
-  // better-auth handles OPTIONS internally too, so this might be redundant,
-  // but it's safer.
-  if (res.headersSent) {
+  // Manually run CORS middleware
+  await new Promise((resolve, reject) => {
+    corsHandler(req as any, res as any, (result: any) => {
+      if (result instanceof Error) {
+        return reject(result);
+      }
+      return resolve(result);
+    });
+  });
+
+  // If CORS handled OPTIONS or sent headers, stop execution
+  if (req.method === 'OPTIONS' || res.headersSent) {
     return;
   }
 

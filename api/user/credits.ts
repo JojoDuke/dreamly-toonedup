@@ -2,23 +2,52 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Pool } from 'pg';
 import { auth } from '../../backend/lib/auth.js'; // Adjust path relative to api dir
-import { runMiddleware, corsMiddleware } from '../lib/runMiddleware'; // Import new helpers
+import cors from 'cors'; // Import cors directly
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+// --- CORS Configuration ---
+const trustedOrigins = [
+  'http://localhost:8080',
+  'https://toonlyai.com',
+  'https://www.toonlyai.com'
+].filter(Boolean) as string[];
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || trustedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
+  allowedHeaders: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+};
+const corsHandler = cors(corsOptions);
+
+// --- Configuration ---
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// Remove allowCors wrapper
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Run the CORS middleware
-  await runMiddleware(req, res, corsMiddleware);
 
-  // Handle OPTIONS
-  if (req.method === 'OPTIONS') {
-    return; 
+  // Manually run CORS middleware
+  await new Promise((resolve, reject) => {
+    corsHandler(req as any, res as any, (result: any) => {
+      if (result instanceof Error) {
+        return reject(result);
+      }
+      return resolve(result);
+    });
+  });
+
+  // If CORS handled OPTIONS or sent headers, stop execution
+  if (req.method === 'OPTIONS' || res.headersSent) {
+    return;
   }
 
   // --- Allow GET method only (Now checked *after* CORS) ---
