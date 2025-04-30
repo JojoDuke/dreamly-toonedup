@@ -23,7 +23,7 @@ const pool = new Pool({
 
 // console.log("[server.ts] Initializing Express app..."); // Removed
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = 3001;
 // console.log(`[server.ts] PORT determined: ${PORT}`); // Removed
 const openaiApiKey = process.env.OPENAI_API_KEY;
 
@@ -305,5 +305,6 @@ app.post('/api/edit-image', (req: Request, res: Response) => {
 // --- Start Server ---
 // console.log(`[server.ts] Attempting to listen on port ${PORT}...`); // Removed
 app.listen(PORT, () => {
+  console.log("Cookies changed, lets see");
   console.log(`[Server] Express server listening successfully on port ${PORT}`);
 });

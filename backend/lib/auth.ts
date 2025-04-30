@@ -12,15 +12,19 @@ const authDbPool = new Pool({
 });
 export const auth = betterAuth({
     baseURL: "https://toonify-dreamer.onrender.com",
+    advanced: {
+        useSecureCookies: false,
+        defaultCookieAttributes: {
+            secure: false,
+            sameSite: 'none',
+            httpOnly: true,
+        },
+    },
     trustedOrigins: [
       'http://localhost:8080',
       'https://toonlyai.com',
       'https://www.toonlyai.com'
     ].filter(Boolean) as string[],
-    cookieOptions: {
-        sameSite: 'none',
-        secure: true,
-    },
     database: authDbPool,
     emailAndPassword: { 
         enabled: true, 
