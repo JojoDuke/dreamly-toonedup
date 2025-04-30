@@ -54,8 +54,6 @@ const corsOptions: cors.CorsOptions = {
     // Allow requests from whitelisted origins
     if (!origin || trustedOrigins.includes(origin)) {
       callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
     }
   },
   credentials: true
