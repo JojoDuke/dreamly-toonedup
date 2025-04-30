@@ -20,7 +20,7 @@ console.log("[auth.ts] Database pool created.");
 
 console.log("[auth.ts] Initializing betterAuth...");
 export const auth = betterAuth({
-    baseURL: process.env.BASE_URL,
+    baseURL: "https://toonify-dreamer.onrender.com",
     trustedOrigins: [
       'http://localhost:8080',
       'https://toonlyai.com',
