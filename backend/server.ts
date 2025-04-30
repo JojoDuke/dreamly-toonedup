@@ -28,10 +28,24 @@ const client = new OpenAI({ apiKey: openaiApiKey });
 
 // --- Middleware ---
 
+// Define trusted origins
+const trustedOrigins = [
+  'http://localhost:8080', // Local dev frontend
+  'https://toonlyai.com', // Production frontend (non-www)
+  'https://www.toonlyai.com' // Production frontend (www)
+].filter(Boolean); // Filter out any potential undefined/empty values
 
 // !! IMPORTANT: Apply CORS *before* route handlers that need it !!
-const corsOptions = {
-  origin: process.env.BETTER_AUTH_URL || 'http://localhost:8080' || 'https://toonlyai.com' || 'https://www.toonlyai.com',
+const corsOptions: cors.CorsOptions = {
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests from whitelisted origins
+    if (!origin || trustedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   credentials: true
 };
 app.use(cors(corsOptions));
