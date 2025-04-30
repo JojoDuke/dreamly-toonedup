@@ -3,7 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Pool } from 'pg';
 import { OpenAI, toFile } from 'openai';
 import { auth } from '../backend/lib/auth.js'; // Adjust path if needed
-import { allowCors } from '../api/lib/cors'; // Import the wrapper
+import { runMiddleware, corsMiddleware } from '../api/lib/runMiddleware'; // Import new helpers
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -23,9 +23,22 @@ if (!openaiApiKey) {
 const client = new OpenAI({ apiKey: openaiApiKey });
 
 // --- Vercel Serverless Function Handler ---
-// Wrap the original handler with allowCors
-export default allowCors(async function handler(req: VercelRequest, res: VercelResponse) {
-  // --- Allow POST method only ---
+// Remove allowCors wrapper
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Run the CORS middleware
+  await runMiddleware(req, res, corsMiddleware);
+
+  // The cors middleware handles OPTIONS requests automatically
+  // If the request method is OPTIONS, the middleware finishes the response
+  // and we don't need to proceed further in the handler.
+  if (req.method === 'OPTIONS') {
+      // runMiddleware resolves after the middleware calls next() or ends the response.
+      // If corsMiddleware ended the response (for OPTIONS), we might not need to explicitly return.
+      // However, it's safer to return to prevent any further code execution.
+      return; 
+  }
+
+  // --- Allow POST method only (Now checked *after* CORS) ---
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
@@ -145,4 +158,4 @@ export default allowCors(async function handler(req: VercelRequest, res: VercelR
       dbClient.release();
     }
   }
-}); 
+} 
