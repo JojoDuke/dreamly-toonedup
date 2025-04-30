@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 
 // URL of your backend server endpoint
-const BACKEND_API_URL = '/api/edit-image'; // Use relative path for Vite proxy
+const BACKEND_API_URL = 'https://toonify-dreamer.onrender.com/api/edit-image'; // Hardcode Render URL
 
 export const imageEditService = {
   // Renamed function and added prompt parameter
