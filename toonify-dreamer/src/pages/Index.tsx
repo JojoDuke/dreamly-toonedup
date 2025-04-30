@@ -35,6 +35,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Star as StarIcon } from "lucide-react";
 
+// Remove environment variable logic
+// const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || ''; 
+
 const stylePrompts: Record<string, string> = {
   ghibli: "Turn this image into Ghibli anime style",
   pixel: "Turn this image into pixel art style",
@@ -75,7 +78,7 @@ const Index = () => {
     let currentCredits = 0;
     if (isAuthenticated) {
       setIsLoadingCredits(true);
-      fetch('/api/user/credits', { credentials: 'include' })
+      fetch('https://toonify-dreamer.onrender.com/api/user/credits', { credentials: 'include' })
         .then(res => {
           if (!res.ok) { throw new Error(`Failed to fetch credits: ${res.statusText}`); }
           return res.json();
@@ -114,7 +117,7 @@ const Index = () => {
     if (!isAuthenticated) return;
     setIsLoadingCredits(true);
     try {
-      const res = await fetch('/api/user/credits', { credentials: 'include' });
+      const res = await fetch('https://toonify-dreamer.onrender.com/api/user/credits', { credentials: 'include' });
       if (!res.ok) {
         throw new Error(`Failed to fetch credits: ${res.statusText}`);
       }
