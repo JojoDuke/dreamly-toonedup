@@ -3,6 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Pool } from 'pg';
 import { OpenAI, toFile } from 'openai';
 import { auth } from '../backend/lib/auth.js'; // Adjust path if needed
+import { allowCors } from '../api/lib/cors'; // Import the wrapper
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -22,7 +23,8 @@ if (!openaiApiKey) {
 const client = new OpenAI({ apiKey: openaiApiKey });
 
 // --- Vercel Serverless Function Handler ---
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+// Wrap the original handler with allowCors
+export default allowCors(async function handler(req: VercelRequest, res: VercelResponse) {
   // --- Allow POST method only ---
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
@@ -143,4 +145,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       dbClient.release();
     }
   }
-} 
+}); 
