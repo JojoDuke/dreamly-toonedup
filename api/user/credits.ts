@@ -2,7 +2,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Pool } from 'pg';
 import { auth } from '../../backend/lib/auth.js'; // Adjust path relative to api dir
-import { allowCors } from '../lib/cors'; // Import the wrapper
+import { runMiddleware, corsMiddleware } from '../lib/runMiddleware'; // Import new helpers
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -11,9 +11,17 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// Wrap the handler with allowCors
-export default allowCors(async function handler(req: VercelRequest, res: VercelResponse) {
-  // --- Allow GET method only ---
+// Remove allowCors wrapper
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Run the CORS middleware
+  await runMiddleware(req, res, corsMiddleware);
+
+  // Handle OPTIONS
+  if (req.method === 'OPTIONS') {
+    return; 
+  }
+
+  // --- Allow GET method only (Now checked *after* CORS) ---
   if (req.method !== 'GET') {
     res.setHeader('Allow', ['GET']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
@@ -63,4 +71,4 @@ export default allowCors(async function handler(req: VercelRequest, res: VercelR
       dbClient.release();
     }
   }
-}); 
+} 
