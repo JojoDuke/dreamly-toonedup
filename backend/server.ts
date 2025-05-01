@@ -287,14 +287,58 @@ app.post('/api/edit-image', (req: Request, res: Response) => {
   });
 });
 
-app.post('/webhook/all-dodo-payments', (req: Request, res: Response) => {
-  console.log('--- DODO WEBHOOK HANDLER ENTERED ---'); // Log entry
-  const payload = req.body;
-  console.log('Webhook received (raw body might be empty if parsing failed):', payload); // Original log
-  console.log('Webhook Headers:', JSON.stringify(req.headers, null, 2)); // Log headers too
-  
-  res.status(200).send('OK');
-  console.log('--- DODO WEBHOOK HANDLER EXITED (Sent OK) ---'); // Log exit
+app.post('/webhook/all-dodo-payments', async (req: Request, res: Response) => {
+  console.log('--- DODO WEBHOOK HANDLER ENTERED ---'); 
+  const event = req.body; 
+  res.status(200).send('OK'); 
+
+  try {
+    // Process only successful payment events (adjust type if needed)
+    if (event?.type === 'payment.succeeded') { 
+      console.log('[Webhook] Processing payment.succeeded event...');
+      
+      // --- Extract required data (adjust paths based on logged payload) ---
+      const userId = event.data?.object?.metadata?.user_id; 
+
+      // --- Update Database ---
+      let dbClient;
+      try {
+        console.log(`[Webhook] Connecting to DB to update credits for user ${userId}...`);
+        dbClient = await pool.connect();
+        console.log(`[Webhook] DB connected. Adding 50 credits to user ${userId}...`);
+        
+        const updateResult = await dbClient.query(
+          'UPDATE "user" SET credits = credits + $1 WHERE id = $2',
+          [50, userId]
+        );
+
+        // Check rowCount exists and is greater than 0
+        if (updateResult?.rowCount && updateResult.rowCount > 0) {
+          console.log(`[Webhook] Successfully added 50 credits to user ${userId}.`);
+        } else {
+          // Important: Handle case where user ID from webhook doesn't exist in your DB
+          console.warn(`[Webhook] User ${userId} not found in DB. Could not update credits.`);
+        }
+
+      } catch (dbError) {
+        console.error(`[Webhook] Database error updating credits for user ${userId}:`, dbError);
+        // Log error, but don't try to send response (already sent OK)
+      } finally {
+        if (dbClient) {
+          console.log(`[Webhook] Releasing DB client for user ${userId}.`);
+          dbClient.release();
+        }
+      }
+
+    } else {
+      console.log(`[Webhook] Received event type: ${event?.type || 'unknown'}. No action taken.`);
+    }
+  } catch (processingError) {
+    // Catch any unexpected errors during processing
+    console.error('[Webhook] Error processing webhook payload:', processingError);
+  }
+
+  console.log('--- DODO WEBHOOK HANDLER FINISHED ---');
 });
 
 // --- Start Server ---

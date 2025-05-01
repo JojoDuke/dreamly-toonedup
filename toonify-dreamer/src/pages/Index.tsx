@@ -97,6 +97,7 @@ const Index = () => {
   // Derive authentication status from manual session state
   const session = sessionState.data?.session;
   const user = sessionState.data?.user;
+  const userId = user?.id;
   const isAuthenticated = !!session;
   const userEmail = user?.email;
   const isSessionLoading = sessionState.isLoading; // Use our state for loading
@@ -591,10 +592,22 @@ const Index = () => {
                     <li>⏱️ &lt; 1 Min Turnaround</li>
                   </ul>
                   <Button 
+                    className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow"
                     onClick={() => {
-                      window.location.href = 'https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1';
-                    }}
-                    className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow">Buy Now</Button>
+                      if (userId) {
+                        // Construct the URL with the userId
+                        const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}`;
+                        console.log(`[Payment] Redirecting to: ${paymentUrl}`);
+                        window.location.href = paymentUrl;
+                      } else {
+                        // Handle case where userId is not available (e.g., not logged in or session loading)
+                        console.error("[Payment] User ID not available for payment redirect.");
+                        if (!isAuthenticated) triggerAuthModal();
+                        else toast.error("User session details missing, please refresh.");
+                      }
+                    }}>
+                      Buy Now
+                    </Button>
                 </div>
                 <div className="border-2 border-yellow-500 rounded-lg p-6 text-center bg-white/50 flex flex-col ring-2 ring-yellow-500/50 shadow-lg relative">
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-[#3a2e23] px-3 py-0.5 rounded-full text-xs font-bold">Most Popular</div>
