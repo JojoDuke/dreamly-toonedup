@@ -290,7 +290,7 @@ app.post('/api/edit-image', (req: Request, res: Response) => {
 app.post('/webhook/all-dodo-payments', async (req: Request, res: Response) => {
   console.log('--- DODO WEBHOOK HANDLER ENTERED ---'); 
   const event = req.body; 
-  console.log('--- DODO WEBHOOK EVENT ---',event.data.object);
+  console.log('--- DODO WEBHOOK EVENT ---', event);
   res.status(200).send('OK'); 
 
   try {
