@@ -290,7 +290,6 @@ app.post('/api/edit-image', (req: Request, res: Response) => {
 app.post('/webhook/all-dodo-payments', async (req: Request, res: Response) => {
   console.log('--- DODO WEBHOOK HANDLER ENTERED ---'); 
   const event = req.body; 
-  console.log('--- DODO WEBHOOK EVENT ---', event?.data?.metadata?.user_id);
   res.status(200).send('OK'); 
 
   try {
@@ -298,8 +297,8 @@ app.post('/webhook/all-dodo-payments', async (req: Request, res: Response) => {
     if (event?.type === 'payment.succeeded') { 
       console.log('[Webhook] Processing payment.succeeded event...');
       
-      // --- Extract required data (adjust paths based on logged payload) ---
-      const userId = event.data?.object?.metadata?.user_id; 
+      // Grab user id from the payment url metadata
+      const userId = event?.data?.object?.metadata?.user_id;
 
       // --- Update Database ---
       let dbClient;
