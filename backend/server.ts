@@ -297,8 +297,8 @@ app.post('/webhook/all-dodo-payments', async (req: Request, res: Response) => {
     if (event?.type === 'payment.succeeded') { 
       console.log('[Webhook] Processing payment.succeeded event...');
       
-      // Grab user id from the payment url metadata
-      const userId = event?.data?.object?.metadata?.user_id;
+      // --- Extract required data (adjust paths based on logged payload) ---
+      const userId = event?.data?.metadata?.user_id;
 
       // --- Update Database ---
       let dbClient;
