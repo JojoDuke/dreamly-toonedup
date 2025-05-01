@@ -287,11 +287,17 @@ app.post('/api/edit-image', (req: Request, res: Response) => {
   });
 });
 
-// console.log("[server.ts] API routes defined."); // Removed
+app.post('/webhook/all-dodo-payments', (req: Request, res: Response) => {
+  console.log('--- DODO WEBHOOK HANDLER ENTERED ---'); // Log entry
+  const payload = req.body;
+  console.log('Webhook received (raw body might be empty if parsing failed):', payload); // Original log
+  console.log('Webhook Headers:', JSON.stringify(req.headers, null, 2)); // Log headers too
+  
+  res.status(200).send('OK');
+  console.log('--- DODO WEBHOOK HANDLER EXITED (Sent OK) ---'); // Log exit
+});
 
 // --- Start Server ---
-// console.log(`[server.ts] Attempting to listen on port ${PORT}...`); // Removed
 app.listen(PORT, () => {
-  console.log("Cookies changed, lets see");
   console.log(`[Server] Express server listening successfully on port ${PORT}`);
 });

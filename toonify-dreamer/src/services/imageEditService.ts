@@ -1,9 +1,7 @@
-import { toast } from "sonner";
-import dotenv from "dotenv";
-dotenv.config({ path: '.env.local' });
-
-// URL of your backend server endpoint
-const BACKEND_API_URL = `${process.env.BETTER_AUTH_URL}/api/edit-image`;
+// Use Vite's import.meta.env for frontend environment variables
+// Use the VITE_ prefixed variable name
+const BACKEND_BASE_URL = import.meta.env.VITE_BETTER_AUTH_URL || ''; // Provide a default
+const API_ENDPOINT = `${BACKEND_BASE_URL.replace(/\/$/, '')}/api/edit-image`;
 
 export const imageEditService = {
   // Renamed function and added prompt parameter
@@ -20,7 +18,7 @@ export const imageEditService = {
       });
 
       console.log('Sending request to backend edit endpoint...');
-      const response = await fetch(BACKEND_API_URL, {
+      const response = await fetch(API_ENDPOINT, {
         method: 'POST',
         credentials: 'include',
         headers: {

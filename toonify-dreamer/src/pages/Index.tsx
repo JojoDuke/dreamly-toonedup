@@ -34,10 +34,10 @@ import CountUp from "react-countup";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Star as StarIcon } from "lucide-react";
-import dotenv from "dotenv";
-dotenv.config({ path: '.env.local' });
 
-const BACKEND_BASE_URL = process.env.BETTER_AUTH_URL; 
+// Use Vite's import.meta.env for frontend environment variables
+// Use the VITE_ prefixed variable name
+const BACKEND_BASE_URL = import.meta.env.VITE_BETTER_AUTH_URL || ''; // Provide a default
 
 const stylePrompts: Record<string, string> = {
   ghibli: "Turn this image into Ghibli anime style",
@@ -269,7 +269,8 @@ const Index = () => {
       // Ensure callback URL is correct
       const { data, error } = await authClient.signIn.magicLink({
         email,
-        callbackURL: "https://toonlyai.com",
+        callbackURL: "http://localhost:8080",
+        // callbackURL: "https://toonlyai.com",
       });
 
       if (error) {
@@ -589,7 +590,11 @@ const Index = () => {
                     <li>🎨 Access to 100+ Styles</li>
                     <li>⏱️ &lt; 1 Min Turnaround</li>
                   </ul>
-                  <Button className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow">Buy Now</Button>
+                  <Button 
+                    onClick={() => {
+                      window.location.href = 'https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1';
+                    }}
+                    className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow">Buy Now</Button>
                 </div>
                 <div className="border-2 border-yellow-500 rounded-lg p-6 text-center bg-white/50 flex flex-col ring-2 ring-yellow-500/50 shadow-lg relative">
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-[#3a2e23] px-3 py-0.5 rounded-full text-xs font-bold">Most Popular</div>
