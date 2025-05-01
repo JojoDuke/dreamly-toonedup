@@ -299,22 +299,23 @@ app.post('/webhook/all-dodo-payments', async (req: Request, res: Response) => {
       
       // --- Extract required data (adjust paths based on logged payload) ---
       const userId = event?.data?.metadata?.user_id;
+      const amountToCredit = event?.data?.metadata?.credit_amount;
 
       // --- Update Database ---
       let dbClient;
       try {
         console.log(`[Webhook] Connecting to DB to update credits for user ${userId}...`);
         dbClient = await pool.connect();
-        console.log(`[Webhook] DB connected. Adding 50 credits to user ${userId}...`);
+        console.log(`[Webhook] DB connected. Adding ${amountToCredit} credits to user ${userId}...`);
         
         const updateResult = await dbClient.query(
           'UPDATE "user" SET credits = credits + $1 WHERE id = $2',
-          [50, userId]
+          [amountToCredit, userId]
         );
 
         // Check rowCount exists and is greater than 0
         if (updateResult?.rowCount && updateResult.rowCount > 0) {
-          console.log(`[Webhook] Successfully added 50 credits to user ${userId}.`);
+          console.log(`[Webhook] Successfully added ${amountToCredit} credits to user ${userId}.`);
         } else {
           // Important: Handle case where user ID from webhook doesn't exist in your DB
           console.warn(`[Webhook] User ${userId} not found in DB. Could not update credits.`);

@@ -31,8 +31,8 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
     styles: [
       {
         id: "ghibli",
-        name: "Anime Warm",
-        description: "Transform your image into warm anime style",
+        name: "Studio Ghibli",
+        description: "Transform your image into a warm anime Studio Ghibli style",
       },
     ],
   },

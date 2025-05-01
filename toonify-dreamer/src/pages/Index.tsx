@@ -94,13 +94,13 @@ const Index = () => {
     return () => { isMounted = false; }; // Cleanup function
   }, []); // Empty dependency array ensures it runs only once on mount
 
-  // Derive authentication status from manual session state
+  // Derive authentication status and user data
   const session = sessionState.data?.session;
   const user = sessionState.data?.user;
-  const userId = user?.id;
+  const userId = session?.userId; 
   const isAuthenticated = !!session;
   const userEmail = user?.email;
-  const isSessionLoading = sessionState.isLoading; // Use our state for loading
+  const isSessionLoading = sessionState.isLoading;
 
   // Fetch credits when authentication status changes (or session loads)
   useEffect(() => {
@@ -594,20 +594,21 @@ const Index = () => {
                   <Button 
                     className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow"
                     onClick={() => {
-                      if (userId) {
-                        // Construct the URL with the userId
-                        const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}`;
-                        console.log(`[Payment] Redirecting to: ${paymentUrl}`);
+                      const amountToCredit = 50;
+                      if (userId && isAuthenticated) {
+                        const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                        console.log(`[Payment] Redirecting (50 credits) to: ${paymentUrl}`);
                         window.location.href = paymentUrl;
                       } else {
-                        // Handle case where userId is not available (e.g., not logged in or session loading)
-                        console.error("[Payment] User ID not available for payment redirect.");
+                        console.error("[Payment] User ID/Auth missing for payment (50 credits).");
                         if (!isAuthenticated) triggerAuthModal();
-                        else toast.error("User session details missing, please refresh.");
+                        else toast.error("User session error. Please refresh.");
                       }
-                    }}>
-                      Buy Now
-                    </Button>
+                    }}
+                    disabled={!isAuthenticated || isSessionLoading}
+                  >
+                    Buy Now
+                  </Button>
                 </div>
                 <div className="border-2 border-yellow-500 rounded-lg p-6 text-center bg-white/50 flex flex-col ring-2 ring-yellow-500/50 shadow-lg relative">
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-[#3a2e23] px-3 py-0.5 rounded-full text-xs font-bold">Most Popular</div>
@@ -619,7 +620,25 @@ const Index = () => {
                     <li>🎨 Access to 100+ Styles</li>
                     <li>⏱️ &lt; 1 Min Turnaround</li>
                   </ul>
-                  <Button className="w-full mt-auto bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold">Buy Now</Button>
+                  <Button 
+                    className="w-full mt-auto bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold"
+                    onClick={() => {
+                      const amountToCredit = 120;
+                      if (userId && isAuthenticated) {
+                        // ** NOTE: Assuming same product ID pdt_X... for all packages - ADJUST IF NEEDED **
+                        const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                        console.log(`[Payment] Redirecting (120 credits) to: ${paymentUrl}`);
+                        window.location.href = paymentUrl;
+                      } else {
+                        console.error("[Payment] User ID/Auth missing for payment (120 credits).");
+                        if (!isAuthenticated) triggerAuthModal();
+                        else toast.error("User session error. Please refresh.");
+                      }
+                    }}
+                    disabled={!isAuthenticated || isSessionLoading}
+                  >
+                    Buy Now
+                  </Button>
                 </div>
                 <div className="border border-[#5D4037] rounded-lg p-6 text-center bg-white/30 flex flex-col hover:bg-white/40 transition-colors shadow-md">
                   <h3 className="font-semibold text-lg mb-1 text-[#3a2e23] flex items-center justify-center gap-1"><StarIcon className="h-4 w-4 inline text-yellow-500"/> 300</h3>
@@ -630,7 +649,25 @@ const Index = () => {
                     <li>🎨 Access to 100+ Styles</li>
                     <li>⏱️ &lt; 1 Min Turnaround</li>
                   </ul>
-                  <Button className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow">Buy Now</Button>
+                  <Button 
+                    className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow"
+                    onClick={() => {
+                      const amountToCredit = 300;
+                      if (userId && isAuthenticated) {
+                        // ** NOTE: Assuming same product ID pdt_X... for all packages - ADJUST IF NEEDED **
+                        const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                        console.log(`[Payment] Redirecting (300 credits) to: ${paymentUrl}`);
+                        window.location.href = paymentUrl;
+                      } else {
+                        console.error("[Payment] User ID/Auth missing for payment (300 credits).");
+                        if (!isAuthenticated) triggerAuthModal();
+                        else toast.error("User session error. Please refresh.");
+                      }
+                    }}
+                    disabled={!isAuthenticated || isSessionLoading}
+                  >
+                    Buy Now
+                  </Button>
                 </div>
               </div>
             </TabsContent>
@@ -648,7 +685,25 @@ const Index = () => {
                   <li>Use stars for image transformations, editing, and all styles.</li>
                   <li>Cancel your subscription at any time.</li>
                 </ul>
-                <Button className="w-full max-w-xs mt-4 bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold text-lg py-3">Subscribe Now</Button>
+                <Button 
+                  className="w-full max-w-xs mt-4 bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold text-lg py-3"
+                  onClick={() => {
+                    const amountToCredit = 800; // Example for subscription
+                    if (userId && isAuthenticated) {
+                      // ** NOTE: Assuming same product ID pdt_X... - ADJUST FOR SUBSCRIPTION PRODUCT ID **
+                      const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                      console.log(`[Payment] Redirecting (Subscription ${amountToCredit} credits) to: ${paymentUrl}`);
+                      window.location.href = paymentUrl;
+                    } else {
+                      console.error("[Payment] User ID/Auth missing for payment (Subscription).");
+                      if (!isAuthenticated) triggerAuthModal();
+                      else toast.error("User session error. Please refresh.");
+                    }
+                  }}
+                  disabled={!isAuthenticated || isSessionLoading}
+                >
+                  Subscribe Now
+                </Button>
               </div>
             </TabsContent>
           </Tabs>
