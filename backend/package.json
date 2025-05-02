@@ -30,6 +30,7 @@
     "express": "^5.1.0",
     "openai": "^4.61.0",
     "pg": "^8.15.6",
-    "resend": "^4.4.1"
+    "resend": "^4.4.1",
+    "standardwebhooks": "^1.0.0"
   }
 }
