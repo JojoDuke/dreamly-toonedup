@@ -279,7 +279,7 @@ const Index = () => {
         return;
     }
     
-    // --- Reset Timer Before Starting Edit --- 
+    // --- Reset Timer Before Starting Edit --
     console.log("[Edit Handler] Resetting timer before starting edit.");
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
