@@ -79,17 +79,21 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             <div className="border-2 border-yellow-400 rounded-lg p-8 text-center bg-[#e9e2d6]/10 flex flex-col items-center shadow-lg ring-2 ring-yellow-400/50">
               <h3 className="font-semibold text-xl mb-2 text-white">Monthly Subscription</h3>
               <p className="text-3xl font-bold text-yellow-400 my-3">$21 / month</p>
-              <p className="text-lg text-white mb-4 flex items-center justify-center gap-2">
-                Get <Star className="h-5 w-5 inline text-yellow-400"/> 800 Stars Every Month!
+              <p className="text-lg text-white mb-4">
+                Unlock premium features & enhance your creativity!
               </p>
               <ul className="text-sm text-[#f4efe4]/80 list-disc list-outside text-left space-y-1 mb-6 max-w-md mx-auto pl-5">
-                <li>Best value for regular creators.</li>
-                <li>Stars renew automatically each month.</li>
-                <li>Use stars for image transformations, and access to all styles.</li>
-                <li>Get access to the Edit feature that allows you to edit and customize specific parts of the image after transformation.</li>
-                <li>Cancel your subscription at any time.</li>
+                <li>✨ Access the <span className="font-semibold">Edit feature</span> to customize specific parts of generated images.</li>
+                <li>🖼️ Use the <span className="font-semibold">Multi-Images feature</span> for batch uploads and unique styles.</li>
+                <li>⚡ <span className="font-semibold">Faster processing:</span> Get your images transformed in 40 seconds or less.</li>
+                <li>🌟 Keep and use your existing purchased stars.</li>
+                <li>🚫 Cancel your subscription at any time.</li>
               </ul>
-              <Button className="w-full max-w-xs mt-4 bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold text-lg py-3">Subscribe Now</Button>
+              <Button 
+                className="w-full max-w-xs mt-4 bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold text-lg py-3"
+              >
+                Subscribe Now
+              </Button>
             </div>
           </TabsContent>
 

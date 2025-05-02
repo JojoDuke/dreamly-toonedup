@@ -292,14 +292,14 @@ app.post('/webhook/all-dodo-payments', async (req: Request, res: Response) => {
   const event = req.body; 
   res.status(200).send('OK'); 
 
+  // --- Extract required data (adjust paths based on logged payload) ---
+  const userId = event?.data?.metadata?.user_id;
+  const amountToCredit = event?.data?.metadata?.credit_amount;
+
   try {
     // Process only successful payment events (adjust type if needed)
     if (event?.type === 'payment.succeeded') { 
       console.log('[Webhook] Processing payment.succeeded event...');
-      
-      // --- Extract required data (adjust paths based on logged payload) ---
-      const userId = event?.data?.metadata?.user_id;
-      const amountToCredit = event?.data?.metadata?.credit_amount;
 
       // --- Update Database ---
       let dbClient;
@@ -334,6 +334,82 @@ app.post('/webhook/all-dodo-payments', async (req: Request, res: Response) => {
     } else {
       console.log(`[Webhook] Received event type: ${event?.type || 'unknown'}. No action taken.`);
     }
+
+    // --- Handle Subscription Events --- 
+    // Directly check for active/renewed subscription event types
+    if (event?.type === 'subscription.active' || event?.type === 'subscription.renewed') {
+      console.log(`[Webhook] Processing subscription event for user ${userId}...`);
+
+      let dbClient;
+      try {
+        console.log(`[Webhook] Connecting to DB for subscription update for user ${userId}...`);
+        dbClient = await pool.connect();
+        // Update ONLY the subscription status
+        console.log(`[Webhook] DB connected. Setting subscription_active=TRUE for user ${userId}...`);
+
+        // Update subscription status
+        const updateResult = await dbClient.query(
+          'UPDATE "user" SET subscription_active = TRUE WHERE id = $1', 
+          [userId]
+        );
+
+        if (updateResult?.rowCount && updateResult.rowCount > 0) {
+          console.log(`[Webhook] Successfully set subscription_active=TRUE for user ${userId}.`);
+        } else {
+           console.warn(`[Webhook] User ${userId} not found in DB when setting subscription active.`);
+        }
+
+      } catch (dbError) {
+        console.error(`[Webhook] Database error updating subscription status for user ${userId}:`, dbError);
+      } finally {
+        if (dbClient) {
+          console.log(`[Webhook] Releasing DB client for subscription update for user ${userId}.`);
+          dbClient.release();
+        }
+      }
+    } // End of subscription event check
+    
+    // --- Handle Subscription Expiry --- 
+    else if (event?.type === 'subscription.expired') {
+      console.log(`[Webhook] Processing subscription.expired event for user ${userId}...`);
+
+      if (!userId) {
+          console.error(`[Webhook] User ID missing in subscription.expired event metadata.`);
+          return; // Cannot process without userId
+      }
+
+      let dbClient;
+      try {
+        console.log(`[Webhook] Connecting to DB to set subscription_active=FALSE for user ${userId}...`);
+        dbClient = await pool.connect();
+        console.log(`[Webhook] DB connected. Setting subscription status to FALSE for user ${userId}...`);
+
+        const updateResult = await dbClient.query(
+          'UPDATE "user" SET subscription_active = FALSE WHERE id = $1', 
+          [userId]
+        );
+
+        if (updateResult?.rowCount && updateResult.rowCount > 0) {
+          console.log(`[Webhook] Successfully set subscription_active=FALSE for user ${userId}.`);
+        } else {
+          console.warn(`[Webhook] User ${userId} not found in DB when processing subscription expiry.`);
+        }
+
+      } catch (dbError) {
+        console.error(`[Webhook] Database error updating subscription status to FALSE for user ${userId}:`, dbError);
+      } finally {
+        if (dbClient) {
+          console.log(`[Webhook] Releasing DB client for subscription expiry update for user ${userId}.`);
+          dbClient.release();
+        }
+      }
+    } // End of subscription expired check
+    
+    else {
+      // Keep the log for unhandled event types
+      console.log(`[Webhook] Received event type: ${event?.type || 'unknown'}. No specific action taken.`);
+    }
+
   } catch (processingError) {
     // Catch any unexpected errors during processing
     console.error('[Webhook] Error processing webhook payload:', processingError);

@@ -676,23 +676,23 @@ const Index = () => {
               <div className="border-2 border-yellow-500 rounded-lg p-8 text-center bg-white/50 flex flex-col items-center shadow-lg ring-2 ring-yellow-500/50">
                 <h3 className="font-semibold text-xl mb-2 text-[#3a2e23]">Monthly Subscription</h3>
                 <p className="text-3xl font-bold text-[#8b5e3c] my-3">$21 / month</p>
-                <p className="text-lg text-[#3a2e23] mb-4 flex items-center justify-center gap-2">
-                  Get <StarIcon className="h-5 w-5 inline text-yellow-500"/> 800 Stars Every Month!
+                <p className="text-lg text-[#3a2e23] mb-4">
+                  Unlock premium features & enhance your creativity!
                 </p>
                 <ul className="text-sm text-[#5D4037]/90 list-disc list-outside text-left space-y-1 mb-6 max-w-md mx-auto pl-5">
-                  <li>Best value for regular creators.</li>
-                  <li>Stars renew automatically each month.</li>
-                  <li>Use stars for image transformations, editing, and all styles.</li>
-                  <li>Cancel your subscription at any time.</li>
+                  <li>✨ Access the <span className="font-semibold">Edit feature</span> to customize specific parts of generated images.</li>
+                  <li>🖼️ Use the <span className="font-semibold">Multi-Images feature</span> for batch uploads and unique styles.</li>
+                  <li>⚡ <span className="font-semibold">Faster processing:</span> Get your images transformed in 40 seconds or less.</li>
+                  <li>🌟 Keep and use your existing purchased stars.</li>
+                  <li>🚫 Cancel your subscription at any time.</li>
                 </ul>
                 <Button 
                   className="w-full max-w-xs mt-4 bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold text-lg py-3"
                   onClick={() => {
-                    const amountToCredit = 800; // Example for subscription
+                    const amountToCredit = 0;
                     if (userId && isAuthenticated) {
-                      // ** NOTE: Assuming same product ID pdt_X... - ADJUST FOR SUBSCRIPTION PRODUCT ID **
-                      const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
-                      console.log(`[Payment] Redirecting (Subscription ${amountToCredit} credits) to: ${paymentUrl}`);
+                      const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_ZlnbO81l1eACfK1QadoTf?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                      console.log(`[Payment] Redirecting (Subscription) to: ${paymentUrl}`);
                       window.location.href = paymentUrl;
                     } else {
                       console.error("[Payment] User ID/Auth missing for payment (Subscription).");
