@@ -304,7 +304,7 @@ async function handleEditImageLogic(req: Request, res: Response): Promise<void> 
       prompt: prompt,
       n: 1,
       size: "1024x1024",
-      quality: "low"
+      quality: "high"
     });
     console.log(`[Edit Image Handler] OpenAI API response received for user ${userId}.`);
 
