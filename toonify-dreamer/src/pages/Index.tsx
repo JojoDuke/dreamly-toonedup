@@ -5,7 +5,7 @@ import { StyleSelector } from "@/components/StyleSelector";
 import { ImageResult } from "@/components/ImageResult";
 import { imageEditService } from "@/services/imageEditService";
 import { toast } from "sonner";
-import { Loader2, Brush, Star, Sparkles } from "lucide-react";
+import { Loader2, Brush, Star, Sparkles, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
@@ -17,6 +17,7 @@ import {
   DialogClose
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { 
@@ -56,6 +57,9 @@ const Index = () => {
   const [credits, setCredits] = useState(0);
   const prevCreditsRef = useRef<number>(0);
   const [isLoadingCredits, setIsLoadingCredits] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isLoadingSubscriptionStatus, setIsLoadingSubscriptionStatus] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState("");
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -102,12 +106,14 @@ const Index = () => {
   const userEmail = user?.email;
   const isSessionLoading = sessionState.isLoading;
 
-  // Fetch credits when authentication status changes (or session loads)
+  // Fetch credits AND subscription status when authentication changes (or session loads)
   useEffect(() => {
-    let currentCredits = 0;
     if (isAuthenticated) {
       setIsLoadingCredits(true);
-      console.log("[Frontend Index] Auth successful, fetching credits...");
+      setIsLoadingSubscriptionStatus(true);
+      console.log("[Frontend Index] Auth successful, fetching credits and status...");
+
+      // Fetch Credits
       fetch(`${BACKEND_BASE_URL}/api/user/credits`, { credentials: 'include' })
         .then(res => {
           if (!res.ok) { throw new Error(`Failed to fetch credits: ${res.statusText}`); }
@@ -117,7 +123,6 @@ const Index = () => {
           if (typeof data.credits === 'number') {
             prevCreditsRef.current = credits;
             setCredits(data.credits);
-            currentCredits = data.credits;
           }
         })
         .catch(err => {
@@ -125,18 +130,42 @@ const Index = () => {
           toast.error("Could not load your credit balance.");
           prevCreditsRef.current = credits;
           setCredits(0);
-          currentCredits = 0;
         }).finally(() => {
           setIsLoadingCredits(false);
         });
+
+      // Fetch Subscription Status
+      fetch(`${BACKEND_BASE_URL}/api/user/status`, { credentials: 'include' })
+        .then(res => {
+          if (!res.ok) { throw new Error(`Failed to fetch subscription status: ${res.statusText}`); }
+          return res.json();
+        })
+        .then(data => {
+          if (typeof data.isSubscribed === 'boolean') {
+            console.log("[Frontend Index] Fetched subscription status:", data.isSubscribed);
+            setIsSubscribed(data.isSubscribed);
+          } else {
+            console.warn("[Frontend Index] Unexpected subscription status data:", data);
+            setIsSubscribed(false);
+          }
+        })
+        .catch(err => {
+          console.error("Error fetching subscription status:", err);
+          toast.error("Could not load subscription status.");
+          setIsSubscribed(false);
+        }).finally(() => {
+          setIsLoadingSubscriptionStatus(false);
+        });
+
     } else {
-        // If not authenticated, but session isn't loading anymore, clear credits
+        // If not authenticated, but session isn't loading anymore, clear state
         if (!isSessionLoading) {
-            console.log("[Frontend Index] Not authenticated or session load finished, clearing credits.");
+            console.log("[Frontend Index] Not authenticated or session load finished, clearing credits and status.");
             prevCreditsRef.current = credits;
             setCredits(0);
-            currentCredits = 0;
+            setIsSubscribed(false);
             setIsLoadingCredits(false);
+            setIsLoadingSubscriptionStatus(false);
         }
     }
     // Depend on isAuthenticated and isSessionLoading to trigger correctly
@@ -168,7 +197,7 @@ const Index = () => {
       setIsLoadingCredits(false);
     }
   }, [isAuthenticated]);
-
+  
   const handleImageSelect = useCallback((file: File) => {
     setSelectedFile(file);
     setProcessedImageUrl(null);
@@ -188,10 +217,14 @@ const Index = () => {
       return;
     }
     
-    const prompt = stylePrompts[selectedStyle];
-    if (!prompt) {
-      toast.error("Invalid style selected");
-      console.error("No prompt found for style:", selectedStyle);
+    // Use custom prompt if user is subscribed and has entered text, otherwise use style prompt
+    const finalPrompt = isAuthenticated && isSubscribed && customPrompt.trim() 
+                      ? customPrompt.trim()
+                      : stylePrompts[selectedStyle];
+                      
+    if (!finalPrompt) {
+      toast.error("Please select a style or enter a custom prompt.");
+      console.error("No prompt found for style or custom input:", selectedStyle, customPrompt);
       return;
     }
 
@@ -199,8 +232,8 @@ const Index = () => {
     setProcessedImageUrl(null);
     
     try {
-      console.log("[Frontend Index] Calling imageEditService...");
-      const editedImageUrl = await imageEditService.transformImageWithPrompt(selectedFile, prompt);
+      console.log(`[Frontend Index] Calling imageEditService with prompt: "${finalPrompt}"`);
+      const editedImageUrl = await imageEditService.transformImageWithPrompt(selectedFile, finalPrompt);
       
       setProcessedImageUrl(editedImageUrl);
       toast.success("Image transformed successfully!");
@@ -215,12 +248,12 @@ const Index = () => {
       } else if (error.status === 401) {
         toast.error("Authentication error. Please sign in again.");
       } else {
-        toast.error(error.message || "Failed to transform image. Please try again later.");
+      toast.error(error.message || "Failed to transform image. Please try again later.");
       }
     } finally {
       setIsProcessing(false);
     }
-  }, [selectedFile, selectedStyle, refreshCredits]);
+  }, [selectedFile, selectedStyle, refreshCredits, isAuthenticated, isSubscribed, customPrompt]);
   
   const handleTransformClick = () => {
     // 1. Check if authenticated
@@ -456,10 +489,32 @@ const Index = () => {
           <div className="space-y-6 md:pr-6">            
             <ImageUpload onImageSelect={handleImageSelect} isUploading={isProcessing} />
             
+            {/* --- Conditional Custom Prompt Text Area --- */} 
+            {(isAuthenticated && isSubscribed) && (
+              <div className="space-y-2 p-4 bg-white/30 rounded-lg border border-[#a87b5d]/40 shadow-inner">
+                <Label htmlFor="custom-prompt" className="flex items-center gap-1.5 text-sm font-semibold text-[#5D4037]">
+                  <Pencil className="h-4 w-4" />
+                  Custom Prompt (Subscription Feature)
+                </Label>
+                <Textarea
+                  id="custom-prompt"
+                  placeholder="Describe the transformation you want (e.g., 'Make the background a futuristic city', 'Change hair color to blue')..."
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  disabled={isProcessing}
+                  className="bg-white/80 border-[#a87b5d]/60 text-[#3a2e23] placeholder:text-[#5D4037]/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#8b5e3c] focus-visible:ring-offset-0 min-h-[80px] resize-none"
+                />
+                <p className="text-xs text-[#5D4037]/80">
+                  Subscribers can enter a custom prompt here instead of using the style selector below.
+                </p>
+              </div>
+            )}
+            {/* --- End Conditional Text Area --- */}
+            
             <StyleSelector 
               selectedStyle={selectedStyle} 
               onChange={handleStyleChange} 
-              disabled={isProcessing}
+              disabled={isProcessing || (isAuthenticated && isSubscribed && !!customPrompt.trim())}
             />
             
             <Button 

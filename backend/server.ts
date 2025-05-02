@@ -139,6 +139,77 @@ app.get('/api/user/credits', (req, res) => {
   });
 });
 
+// --- Handler function for getting user status ---
+async function handleGetUserStatus(req: Request, res: Response): Promise<void> {
+  console.log(`[Status Handler] Received request for /api/user/status`);
+  let dbClient;
+  let sessionData;
+  try {
+    // 1. Check authentication
+    console.log(`[Status Handler] Checking session...`);
+    const headers = new Headers();
+    Object.entries(req.headers).forEach(([key, value]) => {
+      if (value) { headers.append(key, Array.isArray(value) ? value.join(', ') : value); }
+    });
+
+    try {
+      sessionData = await auth.api.getSession({ headers });
+      console.log(`[Status Handler] auth.api.getSession result:`, sessionData ? { session: !!sessionData.session, user: !!sessionData.user } : null);
+    } catch (authError) {
+      console.error(`[Status Handler] Error calling auth.api.getSession:`, authError);
+      res.status(500).json({ error: 'Internal server error during authentication check.' });
+      return;
+    }
+
+    if (!sessionData?.session?.userId) {
+      console.log(`[Status Handler] Unauthorized: No session/userId found.`);
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const userId = sessionData.session.userId;
+    console.log(`[Status Handler] User authenticated: ${userId}`);
+
+    // 2. Connect to DB
+    console.log(`[Status Handler] Connecting to DB for user ${userId}...`);
+    dbClient = await pool.connect();
+    console.log(`[Status Handler] DB connected for user ${userId}.`);
+
+    // 3. Fetch subscription status
+    console.log(`[Status Handler] Fetching subscription status for user ${userId}...`);
+    const userResult = await dbClient.query('SELECT subscription_active FROM "user" WHERE id = $1', [userId]);
+    
+    let isSubscribed = false; // Default to false
+    if (userResult.rows.length === 0) {
+      console.warn(`[Status Handler] User ${userId} not found in user table. Returning isSubscribed: false.`);
+    } else {
+      isSubscribed = userResult.rows[0].subscription_active || false; // Handle null/undefined just in case
+      console.log(`[Status Handler] User ${userId} subscription_active: ${isSubscribed}.`);
+    }
+    res.json({ isSubscribed });
+
+  } catch (error: any) {
+    console.error(`[Status Handler] Error fetching status for user:`, error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Internal server error fetching status.' });
+    }
+  } finally {
+    if (dbClient) {
+      console.log(`[Status Handler] Releasing DB client.`);
+      dbClient.release();
+    }
+  }
+}
+
+// --- Endpoint registration for user status ---
+app.get('/api/user/status', (req, res) => {
+  handleGetUserStatus(req, res).catch(err => {
+     console.error("[Server] Unhandled error in route wrapper for handleGetUserStatus:", err);
+     if (!res.headersSent) {
+        res.status(500).json({ error: 'Internal server error.' });
+     }
+  });
+});
+
 // Define the async function separately
 async function handleEditImageLogic(req: Request, res: Response): Promise<void> {
   console.log(`[Edit Image Handler] Received request for /api/edit-image`);
