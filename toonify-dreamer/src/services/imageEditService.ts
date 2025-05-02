@@ -1,61 +1,74 @@
+import { toast } from "sonner";
+
 // Use Vite's import.meta.env for frontend environment variables
 // Use the VITE_ prefixed variable name
 const BACKEND_BASE_URL = import.meta.env.VITE_BETTER_AUTH_URL || ''; // Provide a default
 const API_ENDPOINT = `${BACKEND_BASE_URL.replace(/\/$/, '')}/api/edit-image`;
 
-export const imageEditService = {
-  // Renamed function and added prompt parameter
-  async transformImageWithPrompt(imageFile: File, prompt: string): Promise<string> {
-    try {
-      console.log('Starting image edit via backend...');
-      
-      // Convert the image file to base64 data URL
-      const base64Image = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(imageFile);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = (error) => reject(error);
-      });
+// Helper function to convert File to Base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
 
-      console.log('Sending request to backend edit endpoint...');
-      const response = await fetch(API_ENDPOINT, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: prompt,         // Send the style prompt
-          imageBase64: base64Image // Send the base64 data URL
-        })
-      });
+// Shared API call logic
+async function callEditApi(imageBase64: string, prompt: string): Promise<string> {
+  console.log("[Service] Calling /api/edit-image endpoint...");
+  try {
+    const response = await fetch(`${BACKEND_BASE_URL}/api/edit-image`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', 
+      body: JSON.stringify({ imageBase64, prompt }),
+    });
 
-      const responseData = await response.json(); // Always try to parse JSON
-
-      if (!response.ok) {
-        console.error('Backend server error:', responseData);
-        // Create an error object and attach the status code
-        const error: any = new Error(responseData.details || responseData.error || 'Failed to process image via backend');
-        error.status = response.status; // Attach the status code
-        throw error; // Throw the augmented error
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json(); 
+      } catch (e) {
+        // If parsing JSON fails, use status text
+        errorData = { error: response.statusText };
       }
-
-      console.log('Received response from backend:', responseData);
-
-      if (!responseData.editedImageBase64) {
-        throw new Error('No editedImageBase64 received from the backend');
-      }
-
-      // Return the base64 data URL received from the backend
-      return responseData.editedImageBase64;
-
-    } catch (error: any) {
-      console.error('Error in imageEditService:', error);
-
-      // The calling component (Index.tsx) will now handle displaying toasts 
-      // or modals based on the error status. This service just logs and re-throws.
       
-      throw error; // Always re-throw the error for the calling component to handle
+      console.error("[Service] API Error Response:", errorData);
+      // Throw an object with status for better handling in the component
+      const error: any = new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+      error.status = response.status;
+      throw error;
     }
+
+    const data = await response.json();
+    console.log("[Service] API Success Response:", data);
+
+    if (!data.editedImageBase64) {
+      throw new Error('API response did not contain editedImageBase64.');
+    }
+
+    return data.editedImageBase64;
+
+  } catch (error) {
+    console.error("[Service] Error calling edit API:", error);
+    // Re-throw the error (potentially with status attached) for the component to handle
+    throw error; 
   }
+}
+
+// Existing function for initial transform with File
+async function transformImageWithPrompt(file: File, prompt: string): Promise<string> {
+  const imageBase64 = await fileToBase64(file);
+  // Now calls the shared logic directly
+  return callEditApi(imageBase64, prompt);
+}
+
+export const imageEditService = {
+  transformImageWithPrompt,
+  // Export the shared function directly
+  callEditApi, 
 }; 

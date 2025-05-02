@@ -1,11 +1,11 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ImageUpload";
 import { StyleSelector } from "@/components/StyleSelector";
 import { ImageResult } from "@/components/ImageResult";
 import { imageEditService } from "@/services/imageEditService";
 import { toast } from "sonner";
-import { Loader2, Brush, Star, Sparkles, Pencil } from "lucide-react";
+import { Loader2, Brush, Star, Sparkles, Pencil, Edit } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
@@ -35,6 +35,8 @@ import CountUp from "react-countup";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Star as StarIcon } from "lucide-react";
+import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 
 // Use Vite's import.meta.env for frontend environment variables
 // Use the VITE_ prefixed variable name
@@ -58,8 +60,9 @@ const Index = () => {
   const prevCreditsRef = useRef<number>(0);
   const [isLoadingCredits, setIsLoadingCredits] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [isLoadingSubscriptionStatus, setIsLoadingSubscriptionStatus] = useState(false);
+  const [isLoadingSubscriptionStatus, setIsLoadingSubscriptionStatus] = useState(true);
   const [customPrompt, setCustomPrompt] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -201,6 +204,19 @@ const Index = () => {
   const handleImageSelect = useCallback((file: File) => {
     setSelectedFile(file);
     setProcessedImageUrl(null);
+    setCustomPrompt("");
+    
+    // --- Timer Reset Logic --- 
+    console.log("[Image Select] New image selected, resetting timer and states.");
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    startTimeRef.current = null;
+    setProcessingTimeMs(0);
+    setIsProcessing(false); // Ensure processing flags are off
+    setIsEditing(false); 
+    // --- End Timer Reset Logic ---
   }, []);
   
   const handleStyleChange = useCallback((styleId: string) => {
@@ -211,68 +227,106 @@ const Index = () => {
     setIsAuthModalOpen(true);
   };
 
-  const processImage = useCallback(async () => {
+  const processImage = useCallback(async (promptToUse: string) => {
     if (!selectedFile) {
       toast.error("Please upload an image first");
       return;
     }
-    
-    // Use custom prompt if user is subscribed and has entered text, otherwise use style prompt
-    const finalPrompt = isAuthenticated && isSubscribed && customPrompt.trim() 
-                      ? customPrompt.trim()
-                      : stylePrompts[selectedStyle];
-                      
-    if (!finalPrompt) {
-      toast.error("Please select a style or enter a custom prompt.");
-      console.error("No prompt found for style or custom input:", selectedStyle, customPrompt);
+    if (!promptToUse) {
+      toast.error("Cannot transform without a style or prompt.");
       return;
     }
 
     setIsProcessing(true);
     setProcessedImageUrl(null);
+    setCustomPrompt("");
     
     try {
-      console.log(`[Frontend Index] Calling imageEditService with prompt: "${finalPrompt}"`);
-      const editedImageUrl = await imageEditService.transformImageWithPrompt(selectedFile, finalPrompt);
+      console.log(`[Frontend Index] Calling imageEditService.transformImageWithPrompt with prompt: "${promptToUse}"`);
+      const editedImageUrl = await imageEditService.transformImageWithPrompt(selectedFile, promptToUse);
       
       setProcessedImageUrl(editedImageUrl);
       toast.success("Image transformed successfully!");
-
-      // Refresh credits after successful transformation
       await refreshCredits(); 
-
     } catch (error: any) {
+      handleApiError(error);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [selectedFile, refreshCredits]);
+
+  const handleEditImage = useCallback(async () => {
+    if (!isAuthenticated || !isSubscribed) {
+      toast.error("Editing is available for subscribers only.");
+      return;
+    }
+    if (!processedImageUrl) {
+      toast.info("Please transform an image first before editing.");
+      return;
+    }
+    const editPrompt = customPrompt.trim();
+    if (!editPrompt) {
+      toast.info("Please enter your desired edits in the text box.");
+      return;
+    }
+    if (credits < 10) {
+        toast.error("Not enough credits to edit.");
+        setIsPricingModalOpen(true);
+        return;
+    }
+    if (isProcessing || isEditing) {
+        toast.info("Please wait for the current process to finish.");
+        return;
+    }
+    
+    setIsEditing(true);
+    
+    try {
+      console.log(`[Frontend Index] Calling imageEditService.callEditApi with prompt: "${editPrompt}"`);
+      const editedImageUrl = await imageEditService.callEditApi(processedImageUrl, editPrompt);
+      
+      setProcessedImageUrl(editedImageUrl);
+      toast.success("Image edited successfully!");
+      await refreshCredits(); 
+    } catch (error: any) {
+      handleApiError(error);
+    } finally {
+      setIsEditing(false);
+    }
+  }, [processedImageUrl, customPrompt, isAuthenticated, isSubscribed, credits, refreshCredits, isProcessing, isEditing]);
+
+  const handleApiError = (error: any) => {
       console.error("[Frontend Index] Error processing image:", error);
       if (error.status === 402) {
         setIsPricingModalOpen(true);
       } else if (error.status === 401) {
         toast.error("Authentication error. Please sign in again.");
       } else {
-      toast.error(error.message || "Failed to transform image. Please try again later.");
+        toast.error(error.message || "Failed to process image. Please try again later.");
       }
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [selectedFile, selectedStyle, refreshCredits, isAuthenticated, isSubscribed, customPrompt]);
+  };
   
   const handleTransformClick = () => {
-    // 1. Check if authenticated
-    if (!isAuthenticated) {
-      triggerAuthModal(); // Open login modal if not authenticated
+    if (!selectedFile) {
+      toast.info("Please upload an image first.");
       return;
     }
-
-    // 2. Client-side check for sufficient credits (for immediate feedback)
-    const requiredCredits = 10;
-    if (credits < requiredCredits) {
-      console.log("Client-side check: Insufficient credits. Opening pricing modal.");
-      setIsPricingModalOpen(true); // Open pricing modal immediately
-      return; // Stop before calling the backend
+    if (!isAuthenticated) {
+      toast.info("Please sign in to transform images.");
+      triggerAuthModal();
+      return;
     }
-
-    // 3. If client-side check passes, proceed with the backend call
-    console.log("Client-side check: Credits sufficient. Proceeding to process image.");
-    processImage(); // This function contains the backend call and processing logic
+    if (credits < 10) {
+      toast.error("Not enough credits to transform.");
+      setIsPricingModalOpen(true);
+      return;
+    }
+    if (isProcessing || isEditing) {
+        toast.info("Please wait for the current process to finish.");
+        return;
+    }
+    
+    processImage(stylePrompts[selectedStyle]); 
   };
   
   const downloadImage = useCallback(() => {
@@ -340,62 +394,88 @@ const Index = () => {
 
   // --- Timer Logic using requestAnimationFrame ---
   useEffect(() => {
+    let isActive = isProcessing || isEditing; // Timer runs if processing OR editing
+
     const updateTimer = () => {
       if (startTimeRef.current) {
         const elapsed = Date.now() - startTimeRef.current;
         setProcessingTimeMs(elapsed);
-        // Continue the loop
-        animationFrameRef.current = requestAnimationFrame(updateTimer);
+        // Continue the loop only if still active
+        if (isActive) {
+          animationFrameRef.current = requestAnimationFrame(updateTimer);
+        }
       }
     };
 
-    if (isProcessing) {
-      // Start timer
-      setProcessingTimeMs(0); // Reset timer state
-      startTimeRef.current = Date.now(); // Record start time
-      // Start the animation frame loop
-      animationFrameRef.current = requestAnimationFrame(updateTimer);
+    if (isActive) {
+      // Start timer or ensure it continues
+      if (!startTimeRef.current) { 
+        // Only reset/set start time if timer wasn't already running
+        setProcessingTimeMs(0); // Reset timer state ONLY when starting fresh
+        startTimeRef.current = Date.now(); // Record start time
+        console.log("[Timer] Starting new timer.");
+      } else {
+        console.log("[Timer] Already running, continuing...");
+      }
+      // Start/continue the animation frame loop if not already running
+      if (!animationFrameRef.current) {
+          animationFrameRef.current = requestAnimationFrame(updateTimer);
+      }
     } else {
-      // Stop timer
+      // Stop timer if neither processing nor editing
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
-        startTimeRef.current = null;
+        // Reset start time ref ONLY when stopping completely
+        startTimeRef.current = null; 
+        console.log("[Timer] Stopping timer.");
       }
     }
 
-    // Cleanup function to cancel animation frame
+    // Cleanup function to cancel animation frame if component unmounts while active
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     };
-  }, [isProcessing]); // Dependency array ensures this runs when isProcessing changes
+  // Depend on both flags
+  }, [isProcessing, isEditing]);
 
-  // Format the time for display (e.g., 12.3s)
-  const formattedProcessingTime = (processingTimeMs / 1000).toFixed(1);
+  // Format the time for display (e.g., 1m 15.7s or 12.3s)
+  const formattedProcessingTime = useMemo(() => {
+    const totalSeconds = processingTimeMs / 1000;
+    if (totalSeconds >= 60) {
+      const minutes = Math.floor(totalSeconds / 60);
+      const remainingSeconds = totalSeconds % 60;
+      return `${minutes}m ${remainingSeconds.toFixed(1)}`;
+    } else {
+      return `${totalSeconds.toFixed(1)}`;
+    }
+  }, [processingTimeMs]); // Use useMemo for efficiency
 
   return (
+    <SkeletonTheme baseColor="#e0d8c7" highlightColor="#f4efe4">
     <div className="bg-[url('https://i.ibb.co/DDcDBgws/Chat-GPT-Image-Apr-3-2025-07-56-00-PM.png')] bg-cover bg-center bg-fixed min-h-screen w-full backdrop-blur-sm">
       <header className="sticky top-0 bg-[#a87b5d]/80 backdrop-blur-md z-10 playful-shadow">
         <div className="container flex justify-between items-center h-16">
           <div className="flex items-center gap-2">
             <img 
               src="https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png" 
-              alt="ToonlyAI Wizard Logo" 
+                alt="ToonlyAI Wizard Logo" 
               className="h-12 w-12 object-contain"
               onError={(e) => {
                 console.error("Error loading logo:", e);
                 e.currentTarget.style.display = 'none';
               }}
             />
-            <h1 className="text-2xl font-bold text-white">Toonly AI</h1>
+              <h1 className="text-2xl font-bold text-white">Toonly AI</h1>
           </div>
           
           <div className="flex items-center gap-4">
-            {/* These elements are always shown */} 
+              {/* These elements are always shown */} 
             <button 
-              onClick={() => setIsPricingModalOpen(true)}
+                onClick={() => setIsPricingModalOpen(true)}
               className="bg-white/30 backdrop-blur-sm h-8 px-2 rounded-lg flex items-center text-white font-bold cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-white/40 hover:shadow-md active:scale-95"
             >
               Buy Stars
@@ -412,18 +492,18 @@ const Index = () => {
                       alt="Credit Icon" 
                       className="h-4 w-4 mr-1"
                     />
-                    <span className="flex items-center min-w-[20px] justify-center">
-                      {isLoadingCredits ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <CountUp 
-                          start={prevCreditsRef.current} 
-                          end={credits} 
-                          duration={1.5}
-                          separator="," 
-                          decimals={0} 
-                        />
-                      )}
+                      <span className="flex items-center min-w-[20px] justify-center">
+                        {isLoadingCredits ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CountUp 
+                            start={prevCreditsRef.current} 
+                            end={credits} 
+                            duration={1.5}
+                            separator="," 
+                            decimals={0} 
+                          />
+                        )}
                     </span>
                   </div>
                 </TooltipTrigger>
@@ -439,88 +519,85 @@ const Index = () => {
               </Tooltip>
             </TooltipProvider>
 
-            {/* Conditionally render the user dropdown */} 
-            {isAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    className="relative h-10 w-10 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus:ring-0"
-                  >
-                    <Avatar className="h-10 w-10 border-2 border-white/50">
-                      {/* <AvatarImage src={user?.avatarUrl} alt={userEmail} /> */}
-                      <AvatarFallback className="bg-white/30 text-white">
-                        {userEmail ? userEmail[0].toUpperCase() : <UserIcon size={20} />}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-[#3a2e23] border-[#5D4037] text-[#e9e2d6]" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-xs leading-none text-[#e9e2d6]/80">
-                        {userEmail || "Loading..."}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-[#5D4037]/50" />
-                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer focus:bg-[#5D4037]/50">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null /* Render nothing if not authenticated, as other elements are always shown */} 
+              {/* Conditionally render the user dropdown */} 
+              {isAuthenticated ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="relative h-10 w-10 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus:ring-0"
+                    >
+                      <Avatar className="h-10 w-10 border-2 border-white/50">
+                        {/* <AvatarImage src={user?.avatarUrl} alt={userEmail} /> */}
+                        <AvatarFallback className="bg-white/30 text-white">
+                          {userEmail ? userEmail[0].toUpperCase() : <UserIcon size={20} />}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56 bg-[#3a2e23] border-[#5D4037] text-[#e9e2d6]" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-xs leading-none text-[#e9e2d6]/80">
+                          {userEmail || "Loading..."}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-[#5D4037]/50" />
+                    <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer focus:bg-[#5D4037]/50">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null /* Render nothing if not authenticated, as other elements are always shown */} 
           </div>
         </div>
       </header>
     
     <main className="container py-8">
-      <div className="text-center mb-12">
-        <h2 className="text-4xl font-bold mb-4 text-[#f4efe4] [text-shadow:1px_1px_2px_rgba(93,64,55,0.7)]">Toonly AI</h2>
-        <p className="text-lg text-[#f4efe4]/95 max-w-2xl mx-auto [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)]">
-          Effortlessly transform your photos into stunning cartoon styles, pixel art, and more in seconds. 
-          Simple upload, instant magic!
-        </p>
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold mb-4 text-[#f4efe4] [text-shadow:1px_1px_2px_rgba(93,64,55,0.7)]">Toonly AI</h2>
+          <p className="text-lg text-[#f4efe4]/95 max-w-2xl mx-auto [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)]">
+            Effortlessly transform your photos into stunning cartoon styles, pixel art, and more in seconds. 
+            Simple upload, instant magic!
+          </p>
       </div>
       
-      <div className="max-w-5xl mx-auto bg-[#e9e2d6]/70 backdrop-blur-sm rounded-xl playful-shadow playful-border p-6 mb-16">
+        <div className="max-w-5xl mx-auto bg-[#e9e2d6]/70 backdrop-blur-sm rounded-xl playful-shadow playful-border p-6 mb-16">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:divide-x md:divide-[#8b5e3c]/30 min-h-[600px]">
           <div className="space-y-6 md:pr-6">            
-            <ImageUpload onImageSelect={handleImageSelect} isUploading={isProcessing} />
-            
-            {/* --- Conditional Custom Prompt Text Area --- */} 
-            {(isAuthenticated && isSubscribed) && (
-              <div className="space-y-2 p-4 bg-white/30 rounded-lg border border-[#a87b5d]/40 shadow-inner">
-                <Label htmlFor="custom-prompt" className="flex items-center gap-1.5 text-sm font-semibold text-[#5D4037]">
-                  <Pencil className="h-4 w-4" />
-                  Custom Prompt (Subscription Feature)
-                </Label>
-                <Textarea
-                  id="custom-prompt"
-                  placeholder="Describe the transformation you want (e.g., 'Make the background a futuristic city', 'Change hair color to blue')..."
-                  value={customPrompt}
-                  onChange={(e) => setCustomPrompt(e.target.value)}
-                  disabled={isProcessing}
-                  className="bg-white/80 border-[#a87b5d]/60 text-[#3a2e23] placeholder:text-[#5D4037]/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#8b5e3c] focus-visible:ring-offset-0 min-h-[80px] resize-none"
-                />
-                <p className="text-xs text-[#5D4037]/80">
-                  Subscribers can enter a custom prompt here instead of using the style selector below.
-                </p>
-              </div>
-            )}
-            {/* --- End Conditional Text Area --- */}
+            <ImageUpload onImageSelect={handleImageSelect} isUploading={isProcessing || isEditing} />
+              
+              {/* --- Edit Transformation Area (Subscribers Only) --- */}
+              {isAuthenticated && isSubscribed && (
+                <div className={`space-y-2 p-4 bg-white/30 rounded-lg border border-[#a87b5d]/40 shadow-inner transition-opacity duration-300 ${processedImageUrl ? 'opacity-100' : 'opacity-50'}`}>
+                  <Label htmlFor="custom-prompt" className="flex items-center gap-1.5 text-sm font-semibold text-[#5D4037]">
+                    <Pencil className="h-4 w-4" />
+                    Edit Transformation
+                  </Label>
+                  <Textarea
+                    id="custom-prompt"
+                    placeholder={processedImageUrl ? "Describe further edits (e.g., 'add glasses', 'change background to forest')..." : "Transform an image first to enable editing."}
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    disabled={!processedImageUrl || isProcessing || isEditing}
+                    className="bg-white/80 border-[#a87b5d]/60 text-[#3a2e23] placeholder:text-[#5D4037]/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#8b5e3c] focus-visible:ring-offset-0 min-h-[80px] resize-none disabled:cursor-not-allowed disabled:bg-opacity-60"
+                  />
+                </div>
+              )}
+              {/* --- End Edit Transformation Area --- */}
             
             <StyleSelector 
               selectedStyle={selectedStyle} 
               onChange={handleStyleChange} 
-              disabled={isProcessing || (isAuthenticated && isSubscribed && !!customPrompt.trim())}
+              disabled={isProcessing || isEditing}
             />
             
+            <div className="flex flex-col sm:flex-row gap-3">
             <Button 
               onClick={handleTransformClick}
-              disabled={isProcessing}
-              className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow flex items-center justify-center gap-2" 
+                className="flex-1 bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow flex items-center justify-center gap-2"
               size="lg"
             >
               {isProcessing ? (
@@ -541,257 +618,287 @@ const Index = () => {
                 </>
               )}
             </Button>
+
+              {/* New Edit Button (Subscribers Only, after transform) */} 
+              {isAuthenticated && isSubscribed && (
+                <Button 
+                  onClick={handleEditImage}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white playful-shadow flex items-center justify-center gap-2"
+                  size="lg"
+                >
+                  {isEditing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Editing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Edit className="h-4 w-4" />
+                      <span>Edit Image</span>
+                      <img 
+                        src="https://i.ibb.co/Rd8VZxC/Open-AI-Playground-2025-04-25-at-15-20-53.png" 
+                        alt="Credit Icon" 
+                        className="h-4 w-4"
+                      />
+                      <span>10</span>
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
             
             <div className="md:hidden">
-              <ImageResult imageUrl={processedImageUrl} isLoading={isProcessing} onDownload={downloadImage} formattedProcessingTime={formattedProcessingTime} />
+              {/* Pass combined loading state */}
+              <ImageResult imageUrl={processedImageUrl} isLoading={isProcessing || isEditing} onDownload={downloadImage} formattedProcessingTime={formattedProcessingTime} />
             </div>
           </div>
           
           <div className="md:pl-6 flex items-center justify-center h-full">
             <div className="hidden md:block w-full h-full stitch-border rounded-xl overflow-hidden bg-[#f4efe4]">
-              <ImageResult imageUrl={processedImageUrl} isLoading={isProcessing} onDownload={downloadImage} formattedProcessingTime={formattedProcessingTime} />
+              {/* Pass combined loading state */}
+              <ImageResult imageUrl={processedImageUrl} isLoading={isProcessing || isEditing} onDownload={downloadImage} formattedProcessingTime={formattedProcessingTime} />
             </div>
           </div>
+          </div>
         </div>
+        
+        <section className="py-16 bg-[#f4efe4]/70 backdrop-blur-sm rounded-xl playful-shadow playful-border mb-16 text-[#3a2e23]">
+          <div className="container max-w-5xl mx-auto text-center">
+            <h2 className="text-3xl font-bold mb-4 text-[#5D4037]">Create Stunning Art in 3 Simple Steps</h2>
+            <div className="grid md:grid-cols-3 gap-8 mt-8 text-left">
+              <div className="p-4">
+                <div className="text-4xl font-bold text-[#8b5e3c] mb-2">1.</div>
+                <h3 className="text-xl font-semibold mb-2">Upload Your Image</h3>
+                <p className="text-sm text-[#5D4037]/90">Choose any photo from your device – portraits, pets, landscapes, you name it!</p>
+              </div>
+              <div className="p-4">
+                <div className="text-4xl font-bold text-[#8b5e3c] mb-2">2.</div>
+                <h3 className="text-xl font-semibold mb-2">Select a Style</h3>
+                <p className="text-sm text-[#5D4037]/90">Pick from over 100 unique styles, from classic cartoons to modern fine art.</p>
+              </div>
+              <div className="p-4">
+                <div className="text-4xl font-bold text-[#8b5e3c] mb-2">3.</div>
+                <h3 className="text-xl font-semibold mb-2">Transform!</h3>
+                <p className="text-sm text-[#5D4037]/90">Click the button and watch Toonly AI work its magic in under a minute.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* TO BE ADDED AS TIME GOES ON */}
+        {/* 
+        <section className="py-16 text-center mb-16">
+          <h2 className="text-3xl font-bold mb-8 text-white">See the Magic!</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-[#e9e2d6]/70 backdrop-blur-sm rounded-lg playful-shadow playful-border overflow-hidden aspect-square flex items-center justify-center">
+                <div className="w-full h-full bg-[#a87b5d]/30 flex items-center justify-center text-center p-4">
+                  <span className="text-[#3a2e23] font-semibold">Example {i}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section> 
+        */}
+
+        {/* --- Testimonials Section --- */}
+        {/* 
+        <section className="py-16 bg-[#a87b5d]/80 backdrop-blur-md rounded-xl playful-shadow playful-border mb-16 text-white">
+          <div className="container max-w-5xl mx-auto text-center">
+            <h2 className="text-3xl font-bold mb-8">What Our Users Say</h2>
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="bg-[#3a2e23]/50 p-6 rounded-lg shadow-md">
+                <p className="italic mb-4">"ToonlyAI is incredibly fun and easy to use! Transformed my dog into a cartoon hero in seconds."</p>
+                <p className="font-semibold">- Sarah K.</p>
+              </div>
+              <div className="bg-[#3a2e23]/50 p-6 rounded-lg shadow-md">
+                <p className="italic mb-4">"The variety of styles is amazing. I keep finding new ways to reimagine my photos."</p>
+                <p className="font-semibold">- Mike P.</p>
+              </div>
+              <div className="bg-[#3a2e23]/50 p-6 rounded-lg shadow-md">
+                <p className="italic mb-4">"Perfect for creating unique profile pictures and gifts! Highly recommended."</p>
+                <p className="font-semibold">- Chloe T.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        */}
+
+        <section id="pricing" className="py-16 bg-[#f4efe4]/70 backdrop-blur-sm rounded-xl playful-shadow playful-border mb-16 text-[#3a2e23]">
+          <div className="container max-w-4xl mx-auto">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-[#5D4037] mb-2 flex items-center justify-center gap-2">
+                <StarIcon className="h-7 w-7 text-yellow-400" />
+                Choose Your Plan
+              </h2>
+              <p className="text-center text-[#614e2e]/90">
+                Pick the perfect option to fuel your creativity. Each transformation costs 10 stars.
+              </p>
       </div>
       
-      <section className="py-16 bg-[#f4efe4]/70 backdrop-blur-sm rounded-xl playful-shadow playful-border mb-16 text-[#3a2e23]">
-        <div className="container max-w-5xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4 text-[#5D4037]">Create Stunning Art in 3 Simple Steps</h2>
-          <div className="grid md:grid-cols-3 gap-8 mt-8 text-left">
-            <div className="p-4">
-              <div className="text-4xl font-bold text-[#8b5e3c] mb-2">1.</div>
-              <h3 className="text-xl font-semibold mb-2">Upload Your Image</h3>
-              <p className="text-sm text-[#5D4037]/90">Choose any photo from your device – portraits, pets, landscapes, you name it!</p>
-            </div>
-            <div className="p-4">
-              <div className="text-4xl font-bold text-[#8b5e3c] mb-2">2.</div>
-              <h3 className="text-xl font-semibold mb-2">Select a Style</h3>
-              <p className="text-sm text-[#5D4037]/90">Pick from over 100 unique styles, from classic cartoons to modern fine art.</p>
-            </div>
-            <div className="p-4">
-              <div className="text-4xl font-bold text-[#8b5e3c] mb-2">3.</div>
-              <h3 className="text-xl font-semibold mb-2">Transform!</h3>
-              <p className="text-sm text-[#5D4037]/90">Click the button and watch Toonly AI work its magic in under a minute.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+            <Tabs defaultValue="packages" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 bg-[#e9e2d6]/50 h-11 mb-6 border border-[#a87b5d]/50 rounded-lg">
+                <TabsTrigger value="packages" className="text-base data-[state=active]:bg-[#8b5e3c] data-[state=active]:text-white data-[state=active]:shadow-md rounded-md">Packages</TabsTrigger>
+                <TabsTrigger value="subscription" className="text-base data-[state=active]:bg-[#8b5e3c] data-[state=active]:text-white data-[state=active]:shadow-md rounded-md">Subscription</TabsTrigger>
+              </TabsList>
 
-      {/* TO BE ADDED AS TIME GOES ON */}
-      {/* 
-      <section className="py-16 text-center mb-16">
-        <h2 className="text-3xl font-bold mb-8 text-white">See the Magic!</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-[#e9e2d6]/70 backdrop-blur-sm rounded-lg playful-shadow playful-border overflow-hidden aspect-square flex items-center justify-center">
-              <div className="w-full h-full bg-[#a87b5d]/30 flex items-center justify-center text-center p-4">
-                <span className="text-[#3a2e23] font-semibold">Example {i}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section> 
-      */}
+              <TabsContent value="packages">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-2">
+                  <div className="border border-[#5D4037] rounded-lg p-6 text-center bg-white/30 flex flex-col hover:bg-white/40 transition-colors shadow-md">
+                    <h3 className="font-semibold text-lg mb-1 text-[#3a2e23] flex items-center justify-center gap-1"><StarIcon className="h-4 w-4 inline text-yellow-500"/> 50</h3>
+                    <p className="text-2xl font-bold text-[#8b5e3c] my-3">$3.00</p>
+                    <ul className="text-xs text-[#5D4037]/90 list-none space-y-1 my-4 text-left px-2 flex-grow">
+                      <li>✨ Approx. 5 Image Transforms</li>
+                      <li>💰 $0.06 per Star</li>
+                      <li>🎨 Access to 100+ Styles</li>
+                      <li>⏱️ &lt; 1 Min Turnaround</li>
+                    </ul>
+                    <Button 
+                      className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow"
+                      onClick={() => {
+                        const amountToCredit = 50;
+                        if (userId && isAuthenticated) {
+                          const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                          console.log(`[Payment] Redirecting (50 credits) to: ${paymentUrl}`);
+                          window.location.href = paymentUrl;
+                        } else {
+                          console.error("[Payment] User ID/Auth missing for payment (50 credits).");
+                          if (!isAuthenticated) triggerAuthModal();
+                          else toast.error("User session error. Please refresh.");
+                        }
+                      }}
+                      disabled={!isAuthenticated || isSessionLoading}
+                    >
+                      Buy Now
+                    </Button>
+                  </div>
+                  <div className="border-2 border-yellow-500 rounded-lg p-6 text-center bg-white/50 flex flex-col ring-2 ring-yellow-500/50 shadow-lg relative">
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-[#3a2e23] px-3 py-0.5 rounded-full text-xs font-bold">Most Popular</div>
+                    <h3 className="font-semibold text-lg mb-1 text-[#3a2e23] mt-3 flex items-center justify-center gap-1"><StarIcon className="h-4 w-4 inline text-yellow-500"/> 120</h3>
+                    <p className="text-2xl font-bold text-[#8b5e3c] my-3">$6.00</p>
+                    <ul className="text-xs text-[#5D4037]/90 list-none space-y-1 my-4 text-left px-2 flex-grow">
+                      <li>✨ Approx. 12 Image Transforms</li>
+                      <li>💰 $0.05 per Star</li>
+                      <li>🎨 Access to 100+ Styles</li>
+                      <li>⏱️ &lt; 1 Min Turnaround</li>
+                    </ul>
+                    <Button 
+                      className="w-full mt-auto bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold"
+                      onClick={() => {
+                        const amountToCredit = 120;
+                        if (userId && isAuthenticated) {
+                          // ** NOTE: Assuming same product ID pdt_X... for all packages - ADJUST IF NEEDED **
+                          const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                          console.log(`[Payment] Redirecting (120 credits) to: ${paymentUrl}`);
+                          window.location.href = paymentUrl;
+                        } else {
+                          console.error("[Payment] User ID/Auth missing for payment (120 credits).");
+                          if (!isAuthenticated) triggerAuthModal();
+                          else toast.error("User session error. Please refresh.");
+                        }
+                      }}
+                      disabled={!isAuthenticated || isSessionLoading}
+                    >
+                      Buy Now
+                    </Button>
+                  </div>
+                  <div className="border border-[#5D4037] rounded-lg p-6 text-center bg-white/30 flex flex-col hover:bg-white/40 transition-colors shadow-md">
+                    <h3 className="font-semibold text-lg mb-1 text-[#3a2e23] flex items-center justify-center gap-1"><StarIcon className="h-4 w-4 inline text-yellow-500"/> 300</h3>
+                    <p className="text-2xl font-bold text-[#8b5e3c] my-3">$12.00</p>
+                    <ul className="text-xs text-[#5D4037]/90 list-none space-y-1 my-4 text-left px-2 flex-grow">
+                      <li>✨ Approx. 30 Image Transforms</li>
+                      <li>💰 $0.04 per Star</li>
+                      <li>🎨 Access to 100+ Styles</li>
+                      <li>⏱️ &lt; 1 Min Turnaround</li>
+                    </ul>
+                    <Button 
+                      className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow"
+                      onClick={() => {
+                        const amountToCredit = 300;
+                        if (userId && isAuthenticated) {
+                          // ** NOTE: Assuming same product ID pdt_X... for all packages - ADJUST IF NEEDED **
+                          const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                          console.log(`[Payment] Redirecting (300 credits) to: ${paymentUrl}`);
+                          window.location.href = paymentUrl;
+                        } else {
+                          console.error("[Payment] User ID/Auth missing for payment (300 credits).");
+                          if (!isAuthenticated) triggerAuthModal();
+                          else toast.error("User session error. Please refresh.");
+                        }
+                      }}
+                      disabled={!isAuthenticated || isSessionLoading}
+                    >
+                      Buy Now
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
 
-      {/* --- Testimonials Section --- */}
-      {/* 
-      <section className="py-16 bg-[#a87b5d]/80 backdrop-blur-md rounded-xl playful-shadow playful-border mb-16 text-white">
-        <div className="container max-w-5xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-8">What Our Users Say</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-[#3a2e23]/50 p-6 rounded-lg shadow-md">
-              <p className="italic mb-4">"ToonlyAI is incredibly fun and easy to use! Transformed my dog into a cartoon hero in seconds."</p>
-              <p className="font-semibold">- Sarah K.</p>
-            </div>
-            <div className="bg-[#3a2e23]/50 p-6 rounded-lg shadow-md">
-              <p className="italic mb-4">"The variety of styles is amazing. I keep finding new ways to reimagine my photos."</p>
-              <p className="font-semibold">- Mike P.</p>
-            </div>
-            <div className="bg-[#3a2e23]/50 p-6 rounded-lg shadow-md">
-              <p className="italic mb-4">"Perfect for creating unique profile pictures and gifts! Highly recommended."</p>
-              <p className="font-semibold">- Chloe T.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-      */}
-
-      <section id="pricing" className="py-16 bg-[#f4efe4]/70 backdrop-blur-sm rounded-xl playful-shadow playful-border mb-16 text-[#3a2e23]">
-        <div className="container max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-[#5D4037] mb-2 flex items-center justify-center gap-2">
-              <StarIcon className="h-7 w-7 text-yellow-400" />
-              Choose Your Plan
-            </h2>
-            <p className="text-center text-[#614e2e]/90">
-              Pick the perfect option to fuel your creativity. Each transformation costs 10 stars.
-            </p>
-          </div>
-
-          <Tabs defaultValue="packages" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-[#e9e2d6]/50 h-11 mb-6 border border-[#a87b5d]/50 rounded-lg">
-              <TabsTrigger value="packages" className="text-base data-[state=active]:bg-[#8b5e3c] data-[state=active]:text-white data-[state=active]:shadow-md rounded-md">Packages</TabsTrigger>
-              <TabsTrigger value="subscription" className="text-base data-[state=active]:bg-[#8b5e3c] data-[state=active]:text-white data-[state=active]:shadow-md rounded-md">Subscription</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="packages">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-2">
-                <div className="border border-[#5D4037] rounded-lg p-6 text-center bg-white/30 flex flex-col hover:bg-white/40 transition-colors shadow-md">
-                  <h3 className="font-semibold text-lg mb-1 text-[#3a2e23] flex items-center justify-center gap-1"><StarIcon className="h-4 w-4 inline text-yellow-500"/> 50</h3>
-                  <p className="text-2xl font-bold text-[#8b5e3c] my-3">$3.00</p>
-                  <ul className="text-xs text-[#5D4037]/90 list-none space-y-1 my-4 text-left px-2 flex-grow">
-                    <li>✨ Approx. 5 Image Transforms</li>
-                    <li>💰 $0.06 per Star</li>
-                    <li>🎨 Access to 100+ Styles</li>
-                    <li>⏱️ &lt; 1 Min Turnaround</li>
+              <TabsContent value="subscription">
+                <div className="border-2 border-yellow-500 rounded-lg p-8 text-center bg-white/50 flex flex-col items-center shadow-lg ring-2 ring-yellow-500/50">
+                  <h3 className="font-semibold text-xl mb-2 text-[#3a2e23]">Monthly Subscription</h3>
+                  <p className="text-3xl font-bold text-[#8b5e3c] my-3">$21 / month</p>
+                  <p className="text-lg text-[#3a2e23] mb-4">
+                    Unlock premium features & enhance your creativity!
+                  </p>
+                  <ul className="text-sm text-[#5D4037]/90 list-disc list-outside text-left space-y-1 mb-6 max-w-md mx-auto pl-5">
+                    <li>✨ Access the <span className="font-semibold">Edit feature</span> to customize specific parts of generated images.</li>
+                    <li>🖼️ Use the <span className="font-semibold">Multi-Images feature</span> for batch uploads and unique styles.</li>
+                    <li>⚡ <span className="font-semibold">Faster processing:</span> Get your images transformed in 40 seconds or less.</li>
+                    <li>🌟 Keep and use your existing purchased stars.</li>
+                    <li>🚫 Cancel your subscription at any time.</li>
                   </ul>
                   <Button 
-                    className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow"
+                    className="w-full max-w-xs mt-4 bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold text-lg py-3"
                     onClick={() => {
-                      const amountToCredit = 50;
+                      const amountToCredit = 0;
                       if (userId && isAuthenticated) {
-                        const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
-                        console.log(`[Payment] Redirecting (50 credits) to: ${paymentUrl}`);
+                        const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_ZlnbO81l1eACfK1QadoTf?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                        console.log(`[Payment] Redirecting (Subscription) to: ${paymentUrl}`);
                         window.location.href = paymentUrl;
                       } else {
-                        console.error("[Payment] User ID/Auth missing for payment (50 credits).");
+                        console.error("[Payment] User ID/Auth missing for payment (Subscription).");
                         if (!isAuthenticated) triggerAuthModal();
                         else toast.error("User session error. Please refresh.");
                       }
                     }}
                     disabled={!isAuthenticated || isSessionLoading}
                   >
-                    Buy Now
+                    Subscribe Now
                   </Button>
                 </div>
-                <div className="border-2 border-yellow-500 rounded-lg p-6 text-center bg-white/50 flex flex-col ring-2 ring-yellow-500/50 shadow-lg relative">
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-[#3a2e23] px-3 py-0.5 rounded-full text-xs font-bold">Most Popular</div>
-                  <h3 className="font-semibold text-lg mb-1 text-[#3a2e23] mt-3 flex items-center justify-center gap-1"><StarIcon className="h-4 w-4 inline text-yellow-500"/> 120</h3>
-                  <p className="text-2xl font-bold text-[#8b5e3c] my-3">$6.00</p>
-                  <ul className="text-xs text-[#5D4037]/90 list-none space-y-1 my-4 text-left px-2 flex-grow">
-                    <li>✨ Approx. 12 Image Transforms</li>
-                    <li>💰 $0.05 per Star</li>
-                    <li>🎨 Access to 100+ Styles</li>
-                    <li>⏱️ &lt; 1 Min Turnaround</li>
-                  </ul>
-                  <Button 
-                    className="w-full mt-auto bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold"
-                    onClick={() => {
-                      const amountToCredit = 120;
-                      if (userId && isAuthenticated) {
-                        // ** NOTE: Assuming same product ID pdt_X... for all packages - ADJUST IF NEEDED **
-                        const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
-                        console.log(`[Payment] Redirecting (120 credits) to: ${paymentUrl}`);
-                        window.location.href = paymentUrl;
-                      } else {
-                        console.error("[Payment] User ID/Auth missing for payment (120 credits).");
-                        if (!isAuthenticated) triggerAuthModal();
-                        else toast.error("User session error. Please refresh.");
-                      }
-                    }}
-                    disabled={!isAuthenticated || isSessionLoading}
-                  >
-                    Buy Now
-                  </Button>
-                </div>
-                <div className="border border-[#5D4037] rounded-lg p-6 text-center bg-white/30 flex flex-col hover:bg-white/40 transition-colors shadow-md">
-                  <h3 className="font-semibold text-lg mb-1 text-[#3a2e23] flex items-center justify-center gap-1"><StarIcon className="h-4 w-4 inline text-yellow-500"/> 300</h3>
-                  <p className="text-2xl font-bold text-[#8b5e3c] my-3">$12.00</p>
-                  <ul className="text-xs text-[#5D4037]/90 list-none space-y-1 my-4 text-left px-2 flex-grow">
-                    <li>✨ Approx. 30 Image Transforms</li>
-                    <li>💰 $0.04 per Star</li>
-                    <li>🎨 Access to 100+ Styles</li>
-                    <li>⏱️ &lt; 1 Min Turnaround</li>
-                  </ul>
-                  <Button 
-                    className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow"
-                    onClick={() => {
-                      const amountToCredit = 300;
-                      if (userId && isAuthenticated) {
-                        // ** NOTE: Assuming same product ID pdt_X... for all packages - ADJUST IF NEEDED **
-                        const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
-                        console.log(`[Payment] Redirecting (300 credits) to: ${paymentUrl}`);
-                        window.location.href = paymentUrl;
-                      } else {
-                        console.error("[Payment] User ID/Auth missing for payment (300 credits).");
-                        if (!isAuthenticated) triggerAuthModal();
-                        else toast.error("User session error. Please refresh.");
-                      }
-                    }}
-                    disabled={!isAuthenticated || isSessionLoading}
-                  >
-                    Buy Now
-                  </Button>
-                </div>
-              </div>
-            </TabsContent>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </section>
 
-            <TabsContent value="subscription">
-              <div className="border-2 border-yellow-500 rounded-lg p-8 text-center bg-white/50 flex flex-col items-center shadow-lg ring-2 ring-yellow-500/50">
-                <h3 className="font-semibold text-xl mb-2 text-[#3a2e23]">Monthly Subscription</h3>
-                <p className="text-3xl font-bold text-[#8b5e3c] my-3">$21 / month</p>
-                <p className="text-lg text-[#3a2e23] mb-4">
-                  Unlock premium features & enhance your creativity!
-                </p>
-                <ul className="text-sm text-[#5D4037]/90 list-disc list-outside text-left space-y-1 mb-6 max-w-md mx-auto pl-5">
-                  <li>✨ Access the <span className="font-semibold">Edit feature</span> to customize specific parts of generated images.</li>
-                  <li>🖼️ Use the <span className="font-semibold">Multi-Images feature</span> for batch uploads and unique styles.</li>
-                  <li>⚡ <span className="font-semibold">Faster processing:</span> Get your images transformed in 40 seconds or less.</li>
-                  <li>🌟 Keep and use your existing purchased stars.</li>
-                  <li>🚫 Cancel your subscription at any time.</li>
-                </ul>
-                <Button 
-                  className="w-full max-w-xs mt-4 bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold text-lg py-3"
-                  onClick={() => {
-                    const amountToCredit = 0;
-                    if (userId && isAuthenticated) {
-                      const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_ZlnbO81l1eACfK1QadoTf?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
-                      console.log(`[Payment] Redirecting (Subscription) to: ${paymentUrl}`);
-                      window.location.href = paymentUrl;
-                    } else {
-                      console.error("[Payment] User ID/Auth missing for payment (Subscription).");
-                      if (!isAuthenticated) triggerAuthModal();
-                      else toast.error("User session error. Please refresh.");
-                    }
-                  }}
-                  disabled={!isAuthenticated || isSessionLoading}
-                >
-                  Subscribe Now
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </section>
-
-      <section className="py-16 text-center">
-        <h2 className="text-3xl font-bold mb-8 text-[#f4efe4] [text-shadow:1px_1px_2px_rgba(93,64,55,0.7)]">Frequently Asked Questions</h2>
-        <div className="max-w-3xl mx-auto text-left">
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="item-1" className="border-b border-[#f4efe4]/20">
-              <AccordionTrigger className="py-4 text-lg font-medium text-[#f4efe4] hover:text-white [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)] [&[data-state=open]>svg]:text-yellow-400">How many images can I transform?</AccordionTrigger>
-              <AccordionContent className="pt-1 pb-4 text-[#f4efe4]/80 [text-shadow:1px_1px_1px_rgba(93,64,55,0.5)]">
-                Each image transformation costs 10 stars. You can buy star packages or subscribe for a monthly allowance. Check the pricing section above for details!
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-2" className="border-b border-[#f4efe4]/20">
-              <AccordionTrigger className="py-4 text-lg font-medium text-[#f4efe4] hover:text-white [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)] [&[data-state=open]>svg]:text-yellow-400">What kind of images work best?</AccordionTrigger>
-              <AccordionContent className="pt-1 pb-4 text-[#f4efe4]/80 [text-shadow:1px_1px_1px_rgba(93,64,55,0.5)]">
-                Clear photos of faces, pets, or objects generally produce the best results. Experiment to see what works for your chosen style!
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-4" className="border-b-0">
-              <AccordionTrigger className="py-4 text-lg font-medium text-[#f4efe4] hover:text-white [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)] [&[data-state=open]>svg]:text-yellow-400">How do I cancel my subscription?</AccordionTrigger>
-              <AccordionContent className="pt-1 pb-4 text-[#f4efe4]/80 [text-shadow:1px_1px_1px_rgba(93,64,55,0.5)]">
-                You can manage or cancel your subscription at any time through your account settings (link available when logged in).
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-      </section>
-       
-      <footer className="mt-16 pt-8 text-center text-sm text-[#f4efe4]/90 border-t border-[#f4efe4]/20 [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)]">
+        <section className="py-16 text-center">
+          <h2 className="text-3xl font-bold mb-8 text-[#f4efe4] [text-shadow:1px_1px_2px_rgba(93,64,55,0.7)]">Frequently Asked Questions</h2>
+          <div className="max-w-3xl mx-auto text-left">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="item-1" className="border-b border-[#f4efe4]/20">
+                <AccordionTrigger className="py-4 text-lg font-medium text-[#f4efe4] hover:text-white [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)] [&[data-state=open]>svg]:text-yellow-400">How many images can I transform?</AccordionTrigger>
+                <AccordionContent className="pt-1 pb-4 text-[#f4efe4]/80 [text-shadow:1px_1px_1px_rgba(93,64,55,0.5)]">
+                  Each image transformation costs 10 stars. You can buy star packages or subscribe for a monthly allowance. Check the pricing section above for details!
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="item-2" className="border-b border-[#f4efe4]/20">
+                <AccordionTrigger className="py-4 text-lg font-medium text-[#f4efe4] hover:text-white [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)] [&[data-state=open]>svg]:text-yellow-400">What kind of images work best?</AccordionTrigger>
+                <AccordionContent className="pt-1 pb-4 text-[#f4efe4]/80 [text-shadow:1px_1px_1px_rgba(93,64,55,0.5)]">
+                  Clear photos of faces, pets, or objects generally produce the best results. Experiment to see what works for your chosen style!
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="item-4" className="border-b-0">
+                <AccordionTrigger className="py-4 text-lg font-medium text-[#f4efe4] hover:text-white [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)] [&[data-state=open]>svg]:text-yellow-400">How do I cancel my subscription?</AccordionTrigger>
+                <AccordionContent className="pt-1 pb-4 text-[#f4efe4]/80 [text-shadow:1px_1px_1px_rgba(93,64,55,0.5)]">
+                  You can manage or cancel your subscription at any time through your account settings (link available when logged in).
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        </section>
+         
+        <footer className="mt-16 pt-8 text-center text-sm text-[#f4efe4]/90 border-t border-[#f4efe4]/20 [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)]">
         <div className="flex flex-wrap items-center justify-center space-x-4">
           <a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a>
           <span>•</span>
@@ -820,7 +927,7 @@ const Index = () => {
               <div className="space-y-4 text-[#f4efe4]/80">
                 <section>
                   <h3 className="text-lg font-semibold text-[#f4efe4]/90 mb-1">Join the Fun</h3>
-                  <p className="text-sm">Instantly transform your images into cartoons and other art styles.</p>
+                    <p className="text-sm">Instantly transform your images into cartoons and other art styles.</p>
                 </section>
                 <section>
                   <h3 className="text-lg font-semibold text-[#f4efe4]/90 mb-1">Why Sign Up?</h3>
@@ -870,12 +977,13 @@ const Index = () => {
         </div>
       </DialogContent>
     </Dialog>
-    
-    <PricingModal 
-      isOpen={isPricingModalOpen} 
-      onClose={() => setIsPricingModalOpen(false)} 
-    />
+      
+      <PricingModal 
+        isOpen={isPricingModalOpen} 
+        onClose={() => setIsPricingModalOpen(false)} 
+      />
   </div>
+    </SkeletonTheme>
   );
 };
 

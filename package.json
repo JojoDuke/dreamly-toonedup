@@ -9,6 +9,7 @@
     "node-fetch": "^3.3.2",
     "openai": "^4.96.2",
     "pg": "^8.15.6",
+    "react-loading-skeleton": "^3.5.0",
     "standardwebhooks": "^1.0.0"
   },
   "devDependencies": {
