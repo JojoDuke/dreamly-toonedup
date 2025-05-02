@@ -279,11 +279,22 @@ const Index = () => {
         return;
     }
     
-    setIsEditing(true);
+    // --- Reset Timer Before Starting Edit --- 
+    console.log("[Edit Handler] Resetting timer before starting edit.");
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    startTimeRef.current = null; // Clear start time ref
+    setProcessingTimeMs(0); // Reset displayed time
+    // --- End Timer Reset --- 
+
+    setIsEditing(true); // Now set editing state
     
     try {
+      // Directly use processedImageUrl and the editPrompt
       console.log(`[Frontend Index] Calling imageEditService.callEditApi with prompt: "${editPrompt}"`);
-      const editedImageUrl = await imageEditService.callEditApi(processedImageUrl, editPrompt);
+      const editedImageUrl = await imageEditService.callEditApi(processedImageUrl, editPrompt); 
       
       setProcessedImageUrl(editedImageUrl);
       toast.success("Image edited successfully!");
@@ -591,7 +602,7 @@ const Index = () => {
             <StyleSelector 
               selectedStyle={selectedStyle} 
               onChange={handleStyleChange} 
-              disabled={isProcessing || isEditing}
+              disabled={isProcessing || isEditing || (isAuthenticated && isSubscribed && !!processedImageUrl)}
             />
             
             <div className="flex flex-col sm:flex-row gap-3">
