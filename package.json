@@ -8,7 +8,8 @@
     "form-data": "^4.0.2",
     "node-fetch": "^3.3.2",
     "openai": "^4.96.2",
-    "pg": "^8.15.6"
+    "pg": "^8.15.6",
+    "standardwebhooks": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",

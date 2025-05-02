@@ -3,6 +3,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { OpenAI, toFile } from "openai";
 import { Pool } from 'pg';
+import { Webhook } from 'standardwebhooks';
 
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.js';
@@ -19,10 +20,14 @@ const pool = new Pool({
 const app = express();
 const PORT = 3001;
 const openaiApiKey = process.env.OPENAI_API_KEY;
+const dodoWebhookSecret = process.env.DODO_PAYMENTS_WEBHOOK_KEY;
 
 if (!openaiApiKey) {
   console.error("[server.ts] Error: OPENAI_API_KEY is not set. Exiting.");
   process.exit(1);
+}
+if (!dodoWebhookSecret) {
+  console.warn("[server.ts] Warning: DODO_PAYMENTS_WEBHOOK_KEY is not set. Webhook verification disabled.");
 }
 
 const client = new OpenAI({ apiKey: openaiApiKey });
@@ -39,10 +44,10 @@ const trustedOrigins = [
 // !! IMPORTANT: Apply CORS *before* route handlers that need it !!
 const corsOptions: cors.CorsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    // Allow requests from whitelisted origins
     if (!origin || trustedOrigins.includes(origin)) {
       callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS')); // Deny if origin not in list
     }
   },
   credentials: true
@@ -53,7 +58,7 @@ app.use(cors(corsOptions));
 app.all('/api/auth/{*any}', toNodeHandler(auth));
 
 // Middleware to parse JSON request bodies
-app.use(express.json({ limit: '50mb' }));
+app.use('/api', express.json({ limit: '50mb' }));
 
 // --- API Routes ---
 
@@ -287,136 +292,169 @@ app.post('/api/edit-image', (req: Request, res: Response) => {
   });
 });
 
-app.post('/webhook/all-dodo-payments', async (req: Request, res: Response) => {
-  console.log('--- DODO WEBHOOK HANDLER ENTERED ---'); 
-  const event = req.body; 
-  res.status(200).send('OK'); 
+// --- Webhook Endpoint (Uses RAW body parser) ---
+app.post('/webhook/all-dodo-payments',
+  // 1. Use express.raw() to get the raw body for this specific route
+  express.raw({ type: 'application/json' }),
+  async (req: Request, res: Response) => {
+    console.log('--- DODO WEBHOOK HANDLER ENTERED ---');
 
-  // --- Extract required data (adjust paths based on logged payload) ---
-  const userId = event?.data?.metadata?.user_id;
-  const amountToCredit = event?.data?.metadata?.credit_amount;
-
-  try {
-    // Process only successful payment events (adjust type if needed)
-    if (event?.type === 'payment.succeeded') { 
-      console.log('[Webhook] Processing payment.succeeded event...');
-
-      // --- Update Database ---
-      let dbClient;
-      try {
-        console.log(`[Webhook] Connecting to DB to update credits for user ${userId}...`);
-        dbClient = await pool.connect();
-        console.log(`[Webhook] DB connected. Adding ${amountToCredit} credits to user ${userId}...`);
-        
-        const updateResult = await dbClient.query(
-          'UPDATE "user" SET credits = credits + $1 WHERE id = $2',
-          [amountToCredit, userId]
-        );
-
-        // Check rowCount exists and is greater than 0
-        if (updateResult?.rowCount && updateResult.rowCount > 0) {
-          console.log(`[Webhook] Successfully added ${amountToCredit} credits to user ${userId}.`);
-        } else {
-          // Important: Handle case where user ID from webhook doesn't exist in your DB
-          console.warn(`[Webhook] User ${userId} not found in DB. Could not update credits.`);
-        }
-
-      } catch (dbError) {
-        console.error(`[Webhook] Database error updating credits for user ${userId}:`, dbError);
-        // Log error, but don't try to send response (already sent OK)
-      } finally {
-        if (dbClient) {
-          console.log(`[Webhook] Releasing DB client for user ${userId}.`);
-          dbClient.release();
-        }
-      }
-
+    // --- Signature Verification --- 
+    if (!dodoWebhookSecret) {
+      console.warn('[Webhook] DODO_PAYMENTS_WEBHOOK_KEY not set. Skipping verification.');
+      // Allow processing without verification if secret is missing (for local testing maybe?)
+      // Or return res.status(500).send('Webhook secret not configured'); 
     } else {
-      console.log(`[Webhook] Received event type: ${event?.type || 'unknown'}. No action taken.`);
+      try {
+        console.log('[Webhook] Verifying signature...');
+        const webhook = new Webhook(dodoWebhookSecret);
+
+        // standard-webhooks library expects headers as object, not Map/Headers
+        const headers = req.headers as Record<string, string>; 
+
+        // The library needs the raw body (Buffer) and headers
+        // req.body is the Buffer because we used express.raw()
+        await webhook.verify(req.body, headers);
+
+        console.log('[Webhook] Signature verified successfully.');
+      } catch (error: any) {
+        console.error('[Webhook] Signature verification failed:', error.message || error);
+        // Send 400 Bad Request if signature is invalid
+        res.status(400).send('Webhook signature verification failed.');
+        return; // Stop processing
+      }
+    }
+    // --- End Signature Verification ---
+
+    // 2. Send OK response immediately *after* verification (or keep at start)
+    // Sending it here means we know the signature is valid before acknowledging
+    res.status(200).send('OK');
+
+    let event;
+    try {
+      // 3. Parse the JSON from the raw body *after* verification
+      event = JSON.parse(req.body.toString());
+      console.log(`[Webhook] Parsed Event Type: ${event?.type || 'unknown'}`);
+    } catch (parseError) {
+      console.error('[Webhook] Failed to parse JSON payload:', parseError);
+      // Already sent 200 OK, just log the error and exit handler
+      console.log('--- DODO WEBHOOK HANDLER FINISHED (Parse Error) ---');
+      return;
     }
 
-    // --- Handle Subscription Events --- 
-    // Directly check for active/renewed subscription event types
-    if (event?.type === 'subscription.active' || event?.type === 'subscription.renewed') {
-      console.log(`[Webhook] Processing subscription event for user ${userId}...`);
+    // --- Process the event (using the parsed 'event' object) ---
+    const userId = event?.data?.metadata?.user_id;
+    const amountToCredit = event?.data?.metadata?.credit_amount;
 
-      let dbClient;
-      try {
-        console.log(`[Webhook] Connecting to DB for subscription update for user ${userId}...`);
-        dbClient = await pool.connect();
-        // Update ONLY the subscription status
-        console.log(`[Webhook] DB connected. Setting subscription_active=TRUE for user ${userId}...`);
+    try {
+      // Process payment.succeeded
+      if (event?.type === 'payment.succeeded') {
+        console.log(`[Webhook] Processing payment.succeeded for user ${userId}...`);
 
-        // Update subscription status
-        const updateResult = await dbClient.query(
-          'UPDATE "user" SET subscription_active = TRUE WHERE id = $1', 
-          [userId]
-        );
-
-        if (updateResult?.rowCount && updateResult.rowCount > 0) {
-          console.log(`[Webhook] Successfully set subscription_active=TRUE for user ${userId}.`);
+        if (!userId || amountToCredit === undefined || amountToCredit === null) {
+           console.error(`[Webhook] Missing userId or amountToCredit in payment.succeeded metadata for event ID: ${event?.id}`);
+           // Log error, but don't stop other event processing if structure allows
         } else {
-           console.warn(`[Webhook] User ${userId} not found in DB when setting subscription active.`);
-        }
-
-      } catch (dbError) {
-        console.error(`[Webhook] Database error updating subscription status for user ${userId}:`, dbError);
-      } finally {
-        if (dbClient) {
-          console.log(`[Webhook] Releasing DB client for subscription update for user ${userId}.`);
-          dbClient.release();
+          // Database logic for payment
+          let dbClient;
+          try {
+            console.log(`[Webhook] Connecting to DB for payment update for user ${userId}...`);
+            dbClient = await pool.connect();
+            console.log(`[Webhook] DB connected. Adding ${amountToCredit} credits to user ${userId}...`);
+            const updateResult = await dbClient.query(
+              'UPDATE "user" SET credits = credits + $1 WHERE id = $2',
+              [amountToCredit, userId]
+            );
+            if (updateResult?.rowCount && updateResult.rowCount > 0) {
+              console.log(`[Webhook] Successfully added ${amountToCredit} credits to user ${userId}.`);
+            } else {
+              console.warn(`[Webhook] User ${userId} not found in DB. Could not update credits for payment.`);
+            }
+          } catch (dbError) {
+            console.error(`[Webhook] Database error updating credits for user ${userId} (payment):`, dbError);
+          } finally {
+            if (dbClient) {
+              console.log(`[Webhook] Releasing DB client for payment update for user ${userId}.`);
+              dbClient.release();
+            }
+          }
         }
       }
-    } // End of subscription event check
-    
-    // --- Handle Subscription Expiry --- 
-    else if (event?.type === 'subscription.expired') {
-      console.log(`[Webhook] Processing subscription.expired event for user ${userId}...`);
-
-      if (!userId) {
-          console.error(`[Webhook] User ID missing in subscription.expired event metadata.`);
-          return; // Cannot process without userId
-      }
-
-      let dbClient;
-      try {
-        console.log(`[Webhook] Connecting to DB to set subscription_active=FALSE for user ${userId}...`);
-        dbClient = await pool.connect();
-        console.log(`[Webhook] DB connected. Setting subscription status to FALSE for user ${userId}...`);
-
-        const updateResult = await dbClient.query(
-          'UPDATE "user" SET subscription_active = FALSE WHERE id = $1', 
-          [userId]
-        );
-
-        if (updateResult?.rowCount && updateResult.rowCount > 0) {
-          console.log(`[Webhook] Successfully set subscription_active=FALSE for user ${userId}.`);
+      // Process subscription active/renewed
+      else if (event?.type === 'subscription.active' || event?.type === 'subscription.renewed') {
+        console.log(`[Webhook] Processing subscription active/renewed for user ${userId}...`);
+        if (!userId) {
+            console.error(`[Webhook] User ID missing in ${event.type} event metadata.`);
         } else {
-          console.warn(`[Webhook] User ${userId} not found in DB when processing subscription expiry.`);
-        }
-
-      } catch (dbError) {
-        console.error(`[Webhook] Database error updating subscription status to FALSE for user ${userId}:`, dbError);
-      } finally {
-        if (dbClient) {
-          console.log(`[Webhook] Releasing DB client for subscription expiry update for user ${userId}.`);
-          dbClient.release();
+            // Database logic for subscription active
+            let dbClient;
+            try {
+              console.log(`[Webhook] Connecting to DB for subscription active update for user ${userId}...`);
+              dbClient = await pool.connect();
+              console.log(`[Webhook] DB connected. Setting subscription_active=TRUE for user ${userId}...`);
+              const updateResult = await dbClient.query(
+                'UPDATE "user" SET subscription_active = TRUE WHERE id = $1',
+                [userId]
+              );
+              if (updateResult?.rowCount && updateResult.rowCount > 0) {
+                console.log(`[Webhook] Successfully set subscription_active=TRUE for user ${userId}.`);
+              } else {
+                 console.warn(`[Webhook] User ${userId} not found in DB when setting subscription active.`);
+              }
+            } catch (dbError) {
+              console.error(`[Webhook] Database error updating subscription status active for user ${userId}:`, dbError);
+            } finally {
+              if (dbClient) {
+                console.log(`[Webhook] Releasing DB client for subscription active update for user ${userId}.`);
+                dbClient.release();
+              }
+            }
         }
       }
-    } // End of subscription expired check
-    
-    else {
-      // Keep the log for unhandled event types
-      console.log(`[Webhook] Received event type: ${event?.type || 'unknown'}. No specific action taken.`);
+      // Process subscription expired
+      else if (event?.type === 'subscription.expired') {
+        console.log(`[Webhook] Processing subscription.expired for user ${userId}...`);
+        if (!userId) {
+            console.error(`[Webhook] User ID missing in subscription.expired event metadata.`);
+        } else {
+            // Database logic for subscription expired
+            let dbClient;
+            try {
+              console.log(`[Webhook] Connecting to DB for subscription expiry update for user ${userId}...`);
+              dbClient = await pool.connect();
+              console.log(`[Webhook] DB connected. Setting subscription_active=FALSE for user ${userId}...`);
+              const updateResult = await dbClient.query(
+                'UPDATE "user" SET subscription_active = FALSE WHERE id = $1',
+                [userId]
+              );
+              if (updateResult?.rowCount && updateResult.rowCount > 0) {
+                console.log(`[Webhook] Successfully set subscription_active=FALSE for user ${userId}.`);
+              } else {
+                console.warn(`[Webhook] User ${userId} not found in DB when processing subscription expiry.`);
+              }
+            } catch (dbError) {
+              console.error(`[Webhook] Database error updating subscription status expired for user ${userId}:`, dbError);
+            } finally {
+              if (dbClient) {
+                console.log(`[Webhook] Releasing DB client for subscription expiry update for user ${userId}.`);
+                dbClient.release();
+              }
+            }
+        }
+      }
+      // Log unhandled known event types or default
+      else {
+        console.log(`[Webhook] Received event type: ${event?.type || 'unknown'}. No specific action configured.`);
+      }
+
+    } catch (processingError) {
+      console.error('[Webhook] Error processing webhook event payload:', processingError);
+      // Already sent 200 OK, just log the error
     }
 
-  } catch (processingError) {
-    // Catch any unexpected errors during processing
-    console.error('[Webhook] Error processing webhook payload:', processingError);
+    console.log('--- DODO WEBHOOK HANDLER FINISHED ---');
   }
-
-  console.log('--- DODO WEBHOOK HANDLER FINISHED ---');
-});
+);
 
 // --- Start Server ---
 app.listen(PORT, () => {
