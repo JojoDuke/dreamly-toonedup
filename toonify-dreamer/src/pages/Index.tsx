@@ -46,7 +46,7 @@ const BACKEND_BASE_URL = import.meta.env.VITE_BETTER_AUTH_URL || ''; // Provide 
 
 const stylePrompts: Record<string, string> = {
   ghibli: "Turn this image into Ghibli anime style",
-  pixel: "Turn this image into pixel art style",
+  pixel: "Do this in a 16 bit pixel art style",
   cartoon: "Turn this image into a 3D cartoon style",
 };
 
@@ -74,6 +74,7 @@ const Index = () => {
     isLoading: boolean; 
     error: any | null; 
   }>({ data: null, isLoading: true, error: null });
+  const [isMobileDisclaimerOpen, setIsMobileDisclaimerOpen] = useState(false);
   
   // Fetch session manually on mount
   useEffect(() => {
@@ -102,6 +103,27 @@ const Index = () => {
     fetchSession();
     return () => { isMounted = false; }; // Cleanup function
   }, []); // Empty dependency array ensures it runs only once on mount
+
+  // Check for mobile view on mount and show disclaimer if needed
+  useEffect(() => {
+    const checkMobileAndShowDisclaimer = () => {
+      const isMobileView = window.innerWidth < 768; // Use 768px as the breakpoint (Tailwind's md)
+      const disclaimerShown = sessionStorage.getItem('mobileDisclaimerShown');
+
+      if (isMobileView && !disclaimerShown) {
+        console.log("[Mobile Check] Detected mobile view, showing disclaimer");
+        setIsMobileDisclaimerOpen(true);
+        sessionStorage.setItem('mobileDisclaimerShown', 'true'); // Mark as shown for this session
+      } else {
+        console.log("[Mobile Check] Desktop view or disclaimer already shown.");
+      }
+    };
+
+    // Check on initial mount after a short delay to ensure layout is stable
+    const timer = setTimeout(checkMobileAndShowDisclaimer, 100); 
+
+    return () => clearTimeout(timer); // Cleanup timer on unmount
+  }, []); // Run only once on mount
 
   // Derive authentication status and user data
   const session = sessionState.data?.session;
@@ -1041,6 +1063,27 @@ const Index = () => {
           onClose={() => setIsPricingModalOpen(false)} 
           userId={userId}
         />
+
+        {/* --- Mobile Disclaimer Modal --- */}
+        <Dialog open={isMobileDisclaimerOpen} onOpenChange={setIsMobileDisclaimerOpen}>
+          <DialogContent className="sm:max-w-xs md:max-w-sm bg-[#3a2e23] border-[#5D4037] text-[#e9e2d6] p-6 rounded-lg shadow-xl">
+            <DialogHeader className="text-center mb-4">
+              <DialogTitle className="text-lg font-semibold text-white">Mobile Experience Note</DialogTitle>
+            </DialogHeader>
+            <div className="text-center text-[#f4efe4]/80 text-sm">
+              <p>Toonly AI is fully functional on mobile, but for the best experience (especially drag & drop and viewing details), we recommend using a desktop browser.</p>
+            </div>
+            <DialogFooter className="mt-6 sm:justify-center">
+              <Button 
+                type="button" 
+                onClick={() => setIsMobileDisclaimerOpen(false)}
+                className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow text-sm"
+              >
+                Got it!
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </div>
     </SkeletonTheme>
   );
