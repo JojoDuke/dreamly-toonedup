@@ -41,7 +41,7 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
     name: "Art",
     styles: [
       {
-        id: "pixel-art",
+        id: "pixel",
         name: "Pixel Art",
         description: "Transform your image into pixel art style",
       },
@@ -90,12 +90,12 @@ export function StyleSelector({
           <SelectTrigger className="w-full border-[#a87b5d] bg-[#f4efe4] text-[#5D4037] ring-0 outline-none ring-offset-0 focus:ring-0 focus:outline-none focus:border-[#a87b5d] focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0">
             <SelectValue placeholder="Select Category" />
           </SelectTrigger>
-          <SelectContent className="bg-[#f4efe4] border-[#a87b5d]">
+          <SelectContent className="bg-[#f4efe4] border-[#a87b5d] max-w-[250px]">
             {CATEGORY_OPTIONS.map((category) => (
               <SelectItem 
                 key={category.id} 
                 value={category.id} 
-                className="text-[#5D4037] focus:bg-[#a87b5d]/40 hover:bg-[#a87b5d]/20 cursor-pointer"
+                className="text-[#5D4037] focus:bg-[#a87b5d]/40 hover:bg-[#a87b5d]/20 cursor-pointer whitespace-normal"
               >
                 {category.name}
               </SelectItem>
@@ -112,7 +112,7 @@ export function StyleSelector({
               key={style.id}
               variant={selectedStyle === style.id ? "default" : "outline"}
               className={cn(
-                "h-auto flex flex-col items-start p-4 text-left playful-shadow",
+                "h-auto flex flex-col items-start p-4 text-left playful-shadow w-full",
                 selectedStyle === style.id 
                   ? "bg-[#a87b5d]/20 border-[#8b5e3c] text-[#3E2723]" 
                   : "border-[#a87b5d] text-[#5D4037] hover:border-[#8b5e3c] hover:bg-[#a87b5d]/10",
@@ -121,9 +121,9 @@ export function StyleSelector({
               onClick={() => !(style.disabled || style.comingSoon) && onChange(style.id)}
               disabled={disabled || style.disabled || style.comingSoon}
             >
-              <div className="flex flex-col">
+              <div className="flex flex-col w-full">
                 <span className="font-medium">{style.name}</span>
-                <span className="text-xs text-[#8b5e3c] mt-1 break-words">
+                <span className="text-xs text-[#8b5e3c] mt-1 break-words break-normal hyphens-auto w-full whitespace-normal">
                   {style.description}
                 </span>
                 {style.comingSoon && (
