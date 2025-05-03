@@ -91,9 +91,7 @@ async function handleGetUserCredits(req: Request, res: Response): Promise<void> 
       return;
     }
     const userId = sessionData.session.userId;
-    // Log successful authentication for this endpoint
-    console.log(`[Credits Handler] User authenticated: ${userId}`); 
-
+    
     // 2. Connect to DB
     dbClient = await pool.connect();
 
@@ -213,9 +211,7 @@ async function handleEditImageLogic(req: Request, res: Response): Promise<void> 
     return;
   }
   const userId = sessionData.session.userId;
-  // Keep this auth log
-  console.log(`[Edit Image Handler] User authenticated: ${userId}`); 
-
+  
   let dbClient;
   let isSubscribedUser = false; // To track if this is a subscribed user edit
   
@@ -275,7 +271,7 @@ async function handleEditImageLogic(req: Request, res: Response): Promise<void> 
       prompt: prompt,
       n: 1,
       size: "1024x1024",
-      quality: "high"
+      quality: "low"
     });
 
     // 3. Decrement Credits on Success (Keep log for this?) - Removed, let's rely on webhook for source of truth

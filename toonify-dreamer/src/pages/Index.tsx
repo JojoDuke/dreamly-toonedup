@@ -245,6 +245,9 @@ const Index = () => {
   
   const handleStyleChange = useCallback((styleId: string) => {
     setSelectedStyle(styleId);
+    
+    // We don't reset timer just on style change, 
+    // but will do so when transformImage is called
   }, []);
   
   const triggerAuthModal = () => {
@@ -261,6 +264,14 @@ const Index = () => {
       return;
     }
 
+    // Reset timer before starting processing
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    startTimeRef.current = null; // Reset start time
+    setProcessingTimeMs(0); // Reset the displayed time
+    
     setIsProcessing(true);
     setProcessedImageUrl(null);
     setCustomPrompt("");
@@ -303,16 +314,14 @@ const Index = () => {
         return;
     }
     
-    // --- Reset Timer Before Starting Edit --
-    console.log("[Edit Handler] Resetting timer before starting edit.");
+    // Reset Timer Before Starting Edit
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
     startTimeRef.current = null; // Clear start time ref
     setProcessingTimeMs(0); // Reset displayed time
-    // --- End Timer Reset --- 
-
+    
     setIsEditing(true); // Now set editing state
     
     try {
@@ -361,6 +370,7 @@ const Index = () => {
         return;
     }
     
+    // Timer will be reset within processImage function
     processImage(stylePrompts[selectedStyle]); 
   };
   
@@ -461,8 +471,8 @@ const Index = () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
-        // Reset start time ref ONLY when stopping completely
-        startTimeRef.current = null; 
+        // Keep start time ref and timer value when just stopping 
+        // (don't reset so user can see final time)
         console.log("[Timer] Stopping timer.");
       }
     }
