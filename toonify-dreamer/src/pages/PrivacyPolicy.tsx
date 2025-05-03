@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const PrivacyPolicy = () => {
   return (
@@ -107,11 +108,11 @@ const PrivacyPolicy = () => {
 
        <footer className="mt-16 pt-8 text-center text-sm text-[#5D4037] border-t border-[#a87b5d]/30">
         <div className="flex flex-wrap items-center justify-center space-x-4">
-          <a href="/privacy-policy" className="hover:text-[#3a2e23] transition-colors">Privacy Policy</a>
+          <Link to="/privacy-policy" className="hover:text-[#3a2e23] transition-colors">Privacy Policy</Link>
           <span>•</span>
-          <a href="/terms-of-service" className="hover:text-[#3a2e23] transition-colors">Terms of Service</a>
+          <Link to="/terms-of-service" className="hover:text-[#3a2e23] transition-colors">Terms of Service</Link>
           <span>•</span>
-          <a href="/legal" className="hover:text-[#3a2e23] transition-colors">Legal</a>
+          <Link to="/legal" className="hover:text-[#3a2e23] transition-colors">Legal</Link>
         </div>
         <p className="mt-2 mb-4">© {new Date().getFullYear()} ToonlyAI. All rights reserved.</p>
       </footer>

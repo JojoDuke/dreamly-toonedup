@@ -47,7 +47,7 @@ const corsOptions: cors.CorsOptions = {
     if (!origin || trustedOrigins.includes(origin)) {
       callback(null, true)
     } else {
-      callback(new Error('Not allowed by CORS')); // Deny if origin not in list
+      //callback(new Error('Not allowed by CORS')); // Deny if origin not in list
     }
   },
   credentials: true

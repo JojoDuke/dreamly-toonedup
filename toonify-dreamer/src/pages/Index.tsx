@@ -37,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Star as StarIcon } from "lucide-react";
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import { Link } from 'react-router-dom';
 
 // Use Vite's import.meta.env for frontend environment variables
 // Use the VITE_ prefixed variable name
@@ -365,11 +366,11 @@ const Index = () => {
     setIsSendingMagicLink(true);
     console.log(`[Frontend Index] Requesting magic link for: ${email}`);
     try {
-      // Ensure callback URL is correct
+      const callbackURL = import.meta.env.VITE_APP_BASE_URL;
+
       const { data, error } = await authClient.signIn.magicLink({
         email,
-        callbackURL: "http://localhost:8080",
-        // callbackURL: "https://toonlyai.com",
+        callbackURL: callbackURL, 
       });
 
       if (error) {
@@ -767,18 +768,16 @@ const Index = () => {
                     <Button 
                       className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow"
                       onClick={() => {
-                        const amountToCredit = 50;
                         if (userId && isAuthenticated) {
-                          const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                          const amountToCredit = 50;
+                          const paymentUrl = `https://checkout.dodopayments.com/buy/pdt_o2dgAidb4HRvBPRhiPIkM?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
                           console.log(`[Payment] Redirecting (50 credits) to: ${paymentUrl}`);
                           window.location.href = paymentUrl;
                         } else {
-                          console.error("[Payment] User ID/Auth missing for payment (50 credits).");
-                          if (!isAuthenticated) triggerAuthModal();
-                          else toast.error("User session error. Please refresh.");
+                          console.log("[Payment] User not authenticated for 50 credits purchase. Triggering auth modal.");
+                          triggerAuthModal(); 
                         }
                       }}
-                      disabled={!isAuthenticated || isSessionLoading}
                     >
                       Buy Now
                     </Button>
@@ -796,19 +795,16 @@ const Index = () => {
                     <Button 
                       className="w-full mt-auto bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold"
                       onClick={() => {
-                        const amountToCredit = 120;
                         if (userId && isAuthenticated) {
-                          // ** NOTE: Assuming same product ID pdt_X... for all packages - ADJUST IF NEEDED **
-                          const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                          const amountToCredit = 120;
+                          const paymentUrl = `https://checkout.dodopayments.com/buy/pdt_hVW4yq6XK4OVtdfqKEX4b?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
                           console.log(`[Payment] Redirecting (120 credits) to: ${paymentUrl}`);
                           window.location.href = paymentUrl;
                         } else {
-                          console.error("[Payment] User ID/Auth missing for payment (120 credits).");
-                          if (!isAuthenticated) triggerAuthModal();
-                          else toast.error("User session error. Please refresh.");
+                          console.log("[Payment] User not authenticated for 120 credits purchase. Triggering auth modal.");
+                          triggerAuthModal();
                         }
                       }}
-                      disabled={!isAuthenticated || isSessionLoading}
                     >
                       Buy Now
                     </Button>
@@ -825,19 +821,16 @@ const Index = () => {
                     <Button 
                       className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow"
                       onClick={() => {
-                        const amountToCredit = 300;
                         if (userId && isAuthenticated) {
-                          // ** NOTE: Assuming same product ID pdt_X... for all packages - ADJUST IF NEEDED **
-                          const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_XuaWyd2YlrOuWIk7diVGN?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                          const amountToCredit = 300;
+                          const paymentUrl = `https://checkout.dodopayments.com/buy/pdt_OGKnLAgIESKQpdnWp2yCL?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
                           console.log(`[Payment] Redirecting (300 credits) to: ${paymentUrl}`);
                           window.location.href = paymentUrl;
                         } else {
-                          console.error("[Payment] User ID/Auth missing for payment (300 credits).");
-                          if (!isAuthenticated) triggerAuthModal();
-                          else toast.error("User session error. Please refresh.");
+                          console.log("[Payment] User not authenticated for 300 credits purchase. Triggering auth modal.");
+                          triggerAuthModal();
                         }
                       }}
-                      disabled={!isAuthenticated || isSessionLoading}
                     >
                       Buy Now
                     </Button>
@@ -862,18 +855,16 @@ const Index = () => {
                   <Button 
                     className="w-full max-w-xs mt-4 bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold text-lg py-3"
                     onClick={() => {
-                      const amountToCredit = 0;
                       if (userId && isAuthenticated) {
-                        const paymentUrl = `https://test.checkout.dodopayments.com/buy/pdt_ZlnbO81l1eACfK1QadoTf?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                        const amountToCredit = 0;
+                        const paymentUrl = `https://checkout.dodopayments.com/buy/pdt_3NqIyERjd8icANIGDBrKJ?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
                         console.log(`[Payment] Redirecting (Subscription) to: ${paymentUrl}`);
                         window.location.href = paymentUrl;
                       } else {
-                        console.error("[Payment] User ID/Auth missing for payment (Subscription).");
-                        if (!isAuthenticated) triggerAuthModal();
-                        else toast.error("User session error. Please refresh.");
+                        console.log("[Payment] User not authenticated for subscription purchase. Triggering auth modal.");
+                        triggerAuthModal();
                       }
                     }}
-                    disabled={!isAuthenticated || isSessionLoading}
                   >
                     Subscribe Now
                   </Button>
@@ -911,11 +902,11 @@ const Index = () => {
          
         <footer className="mt-16 pt-8 text-center text-sm text-[#f4efe4]/90 border-t border-[#f4efe4]/20 [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)]">
         <div className="flex flex-wrap items-center justify-center space-x-4">
-          <a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a>
+          <Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
           <span>•</span>
-          <a href="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</a>
+          <Link to="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</Link>
           <span>•</span>
-          <a href="/legal" className="hover:text-white transition-colors">Legal</a>
+          <Link to="/legal" className="hover:text-white transition-colors">Legal</Link>
         </div>
         <p className="mt-2 mb-4">© {new Date().getFullYear()} ToonlyAI. All rights reserved.</p>
       </footer>
@@ -992,6 +983,7 @@ const Index = () => {
       <PricingModal 
         isOpen={isPricingModalOpen} 
         onClose={() => setIsPricingModalOpen(false)} 
+        userId={userId}
       />
   </div>
     </SkeletonTheme>

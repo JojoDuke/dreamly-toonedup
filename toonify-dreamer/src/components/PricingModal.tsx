@@ -9,13 +9,37 @@ import {
 import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 interface PricingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  userId?: string | null;
 }
 
-export function PricingModal({ isOpen, onClose }: PricingModalProps) {
+// Define product IDs (Update with new IDs)
+const PACKAGE_50_ID = "pdt_o2dgAidb4HRvBPRhiPIkM"; 
+const PACKAGE_120_ID = "pdt_hVW4yq6XK4OVtdfqKEX4b";
+const PACKAGE_300_ID = "pdt_OGKnLAgIESKQpdnWp2yCL";
+const SUBSCRIPTION_ID = "pdt_3NqIyERjd8icANIGDBrKJ";
+
+export function PricingModal({ isOpen, onClose, userId }: PricingModalProps) {
+
+  // Reusable payment initiation logic
+  const initiatePayment = (productId: string, amountToCredit: number, description: string) => {
+      if (!userId) {
+          console.error(`[Payment Modal] User ID missing for ${description}.`);
+          toast.error("You must be signed in to make a purchase. Please sign in or refresh the page.");
+          // Optionally trigger sign-in modal if available: onClose(); /* then open auth modal */ 
+          return;
+      }
+      
+      // Use PRODUCTION URL
+      const paymentUrl = `https://checkout.dodopayments.com/buy/${productId}?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+      console.log(`[Payment Modal] Redirecting (${description}) to: ${paymentUrl}`);
+      window.location.href = paymentUrl;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-3xl bg-[#3a2e23] border-[#5D4037] text-[#e9e2d6] p-8 rounded-lg shadow-xl">
@@ -47,7 +71,12 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
                   <li>🎨 Access to 100+ Styles</li>
                   <li>⏱️ &lt; 1 Min Turnaround</li>
                 </ul>
-                <Button className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow">Buy Now</Button>
+                <Button 
+                  className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow"
+                  onClick={() => initiatePayment(PACKAGE_50_ID, 50, "50 stars")}
+                >
+                    Buy Now
+                </Button>
               </div>
               <div className="border-2 border-yellow-400 rounded-lg p-6 text-center bg-[#e9e2d6]/10 flex flex-col ring-2 ring-yellow-400/50 shadow-lg relative">
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-400 text-[#3a2e23] px-3 py-0.5 rounded-full text-xs font-bold">Most Popular</div>
@@ -59,7 +88,12 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
                   <li>🎨 Access to 100+ Styles</li>
                   <li>⏱️ &lt; 1 Min Turnaround</li>
                 </ul>
-                <Button className="w-full mt-auto bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold">Buy Now</Button>
+                <Button 
+                  className="w-full mt-auto bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold"
+                  onClick={() => initiatePayment(PACKAGE_120_ID, 120, "120 stars")}
+                >
+                    Buy Now
+                </Button>
               </div>
               <div className="border border-[#5D4037] rounded-lg p-6 text-center bg-[#e9e2d6]/5 flex flex-col hover:bg-[#e9e2d6]/10 transition-colors shadow-md">
                 <h3 className="font-semibold text-lg mb-1 text-white flex items-center justify-center gap-1"><Star className="h-4 w-4 inline text-yellow-400"/> 300</h3>
@@ -70,7 +104,12 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
                   <li>🎨 Access to 100+ Styles</li>
                   <li>⏱️ &lt; 1 Min Turnaround</li>
                 </ul>
-                <Button className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow">Buy Now</Button>
+                <Button 
+                  className="w-full mt-auto bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow"
+                  onClick={() => initiatePayment(PACKAGE_300_ID, 300, "300 stars")}
+                 >
+                    Buy Now
+                </Button>
               </div>
             </div>
           </TabsContent>
@@ -91,6 +130,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
               </ul>
               <Button 
                 className="w-full max-w-xs mt-4 bg-yellow-500 hover:bg-yellow-600 text-[#3a2e23] playful-shadow font-semibold text-lg py-3"
+                onClick={() => initiatePayment(SUBSCRIPTION_ID, 0, "Subscription")}
               >
                 Subscribe Now
               </Button>
