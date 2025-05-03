@@ -126,6 +126,6 @@ export const auth = betterAuth({
 </body>`,
     });
     }
-  })
-]
+        })
+    ]
 })

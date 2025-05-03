@@ -123,7 +123,7 @@ export function StyleSelector({
             >
               <div className="flex flex-col">
                 <span className="font-medium">{style.name}</span>
-                <span className="text-xs text-[#8b5e3c] mt-1">
+                <span className="text-xs text-[#8b5e3c] mt-1 break-words">
                   {style.description}
                 </span>
                 {style.comingSoon && (

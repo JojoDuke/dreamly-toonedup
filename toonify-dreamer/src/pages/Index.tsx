@@ -5,7 +5,7 @@ import { StyleSelector } from "@/components/StyleSelector";
 import { ImageResult } from "@/components/ImageResult";
 import { imageEditService } from "@/services/imageEditService";
 import { toast } from "sonner";
-import { Loader2, Brush, Star, Sparkles, Pencil, Edit } from "lucide-react";
+import { Loader2, Brush, Star, Sparkles, Pencil, Edit, Menu, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
@@ -38,6 +38,7 @@ import { Star as StarIcon } from "lucide-react";
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { Link } from 'react-router-dom';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 
 // Use Vite's import.meta.env for frontend environment variables
 // Use the VITE_ prefixed variable name
@@ -470,8 +471,8 @@ const Index = () => {
     <SkeletonTheme baseColor="#e0d8c7" highlightColor="#f4efe4">
     <div className="bg-[url('https://i.ibb.co/DDcDBgws/Chat-GPT-Image-Apr-3-2025-07-56-00-PM.png')] bg-cover bg-center bg-fixed min-h-screen w-full backdrop-blur-sm">
       <header className="sticky top-0 bg-[#a87b5d]/80 backdrop-blur-md z-10 playful-shadow">
-        <div className="container flex justify-between items-center h-16">
-          <div className="flex items-center gap-2">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+          <div className="flex items-center gap-2 flex-shrink-0 mr-2">
             <img 
               src="https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png" 
                 alt="ToonlyAI Wizard Logo" 
@@ -481,16 +482,15 @@ const Index = () => {
                 e.currentTarget.style.display = 'none';
               }}
             />
-              <h1 className="text-2xl font-bold text-white">Toonly AI</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-white whitespace-nowrap">Toonly AI</h1>
           </div>
           
-          <div className="flex items-center gap-4">
-              {/* These elements are always shown */} 
+          <div className="hidden md:flex items-center justify-end gap-2 sm:gap-4 flex-grow">
             <button 
                 onClick={() => setIsPricingModalOpen(true)}
               className="bg-white/30 backdrop-blur-sm h-8 px-2 rounded-lg flex items-center text-white font-bold cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-white/40 hover:shadow-md active:scale-95"
             >
-              Buy Stars
+              <span className="whitespace-nowrap">Buy Stars</span>
             </button>
             
             <TooltipProvider>
@@ -531,38 +531,95 @@ const Index = () => {
               </Tooltip>
             </TooltipProvider>
 
-              {/* Conditionally render the user dropdown */} 
-              {isAuthenticated ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      className="relative h-10 w-10 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus:ring-0"
-                    >
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    className="relative h-10 w-10 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus:ring-0"
+                  >
+                    <Avatar className="h-10 w-10 border-2 border-white/50">
+                      <AvatarFallback className="bg-white/30 text-white">
+                        {userEmail ? userEmail[0].toUpperCase() : <UserIcon size={20} />}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-[#3a2e23] border-[#5D4037] text-[#e9e2d6]" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-xs leading-none text-[#e9e2d6]/80">
+                        {userEmail || "Loading..."}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-[#5D4037]/50" />
+                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer focus:bg-[#5D4037]/50">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null} 
+          </div>
+
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-[#a87b5d] border-l-[#8b5e3c] p-6 text-white">
+                <SheetHeader className="mb-6">
+                  <SheetTitle className="text-2xl font-bold text-white text-left">Menu</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col space-y-4">
+                  {isAuthenticated ? (
+                    <div className="flex items-center gap-3 border-b border-white/20 pb-4 mb-4">
                       <Avatar className="h-10 w-10 border-2 border-white/50">
-                        {/* <AvatarImage src={user?.avatarUrl} alt={userEmail} /> */}
-                        <AvatarFallback className="bg-white/30 text-white">
-                          {userEmail ? userEmail[0].toUpperCase() : <UserIcon size={20} />}
-                        </AvatarFallback>
+                         <AvatarFallback className="bg-white/30 text-white text-sm">
+                           {userEmail ? userEmail[0].toUpperCase() : <UserIcon size={20} />} 
+                         </AvatarFallback>
                       </Avatar>
+                      <span className="text-sm font-medium truncate">{userEmail}</span>
+                    </div>
+                  ) : null }
+
+                  <SheetClose asChild> 
+                    <Button 
+                      onClick={() => setIsPricingModalOpen(true)}
+                      variant="secondary"
+                      className="w-full justify-start gap-2 text-white bg-[#e9e2d6]/20 hover:bg-[#e9e2d6]/30"
+                    >
+                       <Star className="h-4 w-4 text-yellow-400"/> Buy Stars
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 bg-[#3a2e23] border-[#5D4037] text-[#e9e2d6]" align="end" forceMount>
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-xs leading-none text-[#e9e2d6]/80">
-                          {userEmail || "Loading..."}
-                        </p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-[#5D4037]/50" />
-                    <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer focus:bg-[#5D4037]/50">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : null /* Render nothing if not authenticated, as other elements are always shown */} 
+                  </SheetClose>
+                  
+                  <div className="flex items-center justify-between text-sm px-3 py-2 rounded-md bg-white/10">
+                     <span className="flex items-center gap-2">
+                       <Star className="h-4 w-4 text-yellow-400"/> Credits Remaining:
+                     </span>
+                     <span className="font-semibold flex items-center min-w-[20px] justify-center">
+                       {isLoadingCredits ? <Loader2 className="h-4 w-4 animate-spin" /> : <CountUp start={prevCreditsRef.current} end={credits} duration={1.5} separator="," decimals={0} />}
+                     </span>
+                   </div>
+
+                  {isAuthenticated ? (
+                    <SheetClose asChild>
+                      <Button 
+                        onClick={handleSignOut}
+                        variant="ghost"
+                        className="w-full justify-start gap-2 hover:bg-white/10 text-white"
+                        >
+                         <LogOut className="h-4 w-4"/> Sign Out
+                      </Button>
+                     </SheetClose>
+                  ) : null}
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </header>
@@ -576,8 +633,8 @@ const Index = () => {
           </p>
       </div>
       
-        <div className="max-w-5xl mx-auto bg-[#e9e2d6]/70 backdrop-blur-sm rounded-xl playful-shadow playful-border p-6 mb-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:divide-x md:divide-[#8b5e3c]/30 min-h-[600px]">
+        <div className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto bg-[#e9e2d6]/70 backdrop-blur-sm rounded-xl playful-shadow playful-border p-4 sm:p-6 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:divide-x md:divide-[#8b5e3c]/30 min-h-[500px] sm:min-h-[600px]">
           <div className="space-y-6 md:pr-6">            
             <ImageUpload onImageSelect={handleImageSelect} isUploading={isProcessing || isEditing} />
               
@@ -609,8 +666,7 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row gap-3">
             <Button 
               onClick={handleTransformClick}
-                className="flex-1 bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow flex items-center justify-center gap-2"
-              size="lg"
+                className="flex-1 bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow flex items-center justify-center gap-2 w-full sm:w-auto text-base"
             >
               {isProcessing ? (
                 <>
@@ -635,8 +691,7 @@ const Index = () => {
               {isAuthenticated && isSubscribed && (
                 <Button 
                   onClick={handleEditImage}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white playful-shadow flex items-center justify-center gap-2"
-                  size="lg"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white playful-shadow flex items-center justify-center gap-2 w-full sm:w-auto text-base"
                 >
                   {isEditing ? (
                     <>
@@ -671,9 +726,9 @@ const Index = () => {
               <ImageResult imageUrl={processedImageUrl} isLoading={isProcessing || isEditing} onDownload={downloadImage} formattedProcessingTime={formattedProcessingTime} />
             </div>
           </div>
-          </div>
         </div>
-        
+      </div>
+      
         <section className="py-16 bg-[#f4efe4]/70 backdrop-blur-sm rounded-xl playful-shadow playful-border mb-16 text-[#3a2e23]">
           <div className="container max-w-5xl mx-auto text-center">
             <h2 className="text-3xl font-bold mb-4 text-[#5D4037]">Create Stunning Art in 3 Simple Steps</h2>
