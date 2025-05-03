@@ -271,7 +271,7 @@ async function handleEditImageLogic(req: Request, res: Response): Promise<void> 
       prompt: prompt,
       n: 1,
       size: "1024x1024",
-      quality: "low"
+      quality: "high"
     });
 
     // 3. Decrement Credits on Success (Keep log for this?) - Removed, let's rely on webhook for source of truth
