@@ -5,7 +5,7 @@ import { magicLink } from "better-auth/plugins";
 import { Resend } from "resend";
 
 // Use the public URL directly
-const theWizardUrl = "https://imgur.com/B7ptMnm";
+const theWizardUrl = "https://imgur.com/B7ptMnm.png";
 
 //https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png
 
