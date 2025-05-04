@@ -450,7 +450,7 @@ const Index = () => {
       const { data, error } = await authClient.signIn.email({ 
           email, 
           password, 
-          callbackURL: callbackUrl 
+          callbackURL: "https://toonlyai.com"
       });
       if (error) { throw error; }
       toast.success("Sign in successful!");
