@@ -272,7 +272,7 @@ const Index = () => {
     startTimeRef.current = null; // Reset start time reference
     setProcessingTimeMs(0); // Reset the displayed timer value
     // --- End Timer Reset Logic ---
-    
+
     setIsProcessing(true);
     setProcessedImageUrl(null);
     setCustomPrompt("");
@@ -411,11 +411,25 @@ const Index = () => {
         name,
       });
       if (error) { throw error; }
+
+      // --- Trigger verification email manually --- 
+      try {
+        console.log(`[Frontend Index] Signup successful, attempting to send verification email to ${email}...`);
+        await authClient.sendVerificationEmail({ email });
+        console.log(`[Frontend Index] Verification email request sent for ${email}.`);
+      } catch (verificationError: any) {
+         console.error("[Frontend Index] Failed to trigger verification email after signup:", verificationError);
+         // Don't block signup success message, but maybe log?
+         toast.warning("Signup successful, but failed to automatically send verification email. You may need to request it manually via Sign In.");
+      }
+      // --- End trigger --- 
+
       toast.success("Sign up successful! Please check your email to verify your account before signing in.");
       setAuthMode('signIn'); 
       setPassword("");
       setConfirmPassword("");
       setName("");
+
     } catch (error: any) {
       console.error("Sign up error:", error);
       toast.error(error.message || "Sign up failed. Please try again.");
@@ -612,40 +626,40 @@ const Index = () => {
   return (
     <SkeletonTheme baseColor="#e0d8c7" highlightColor="#f4efe4">
       <div className="bg-[url('https://i.ibb.co/DDcDBgws/Chat-GPT-Image-Apr-3-2025-07-56-00-PM.png')] bg-cover bg-center min-h-screen w-full backdrop-blur-sm md:bg-fixed">
-        <header className="sticky top-0 bg-[#a87b5d]/80 backdrop-blur-md z-10 playful-shadow">
+      <header className="sticky top-0 bg-[#a87b5d]/80 backdrop-blur-md z-10 playful-shadow">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
             <div className="flex items-center gap-2 flex-shrink-0 mr-2">
-              <img 
-                src="https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png" 
+            <img 
+              src="https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png" 
                   alt="ToonlyAI Wizard Logo" 
-                className="h-12 w-12 object-contain"
-                onError={(e) => {
-                  console.error("Error loading logo:", e);
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+              className="h-12 w-12 object-contain"
+              onError={(e) => {
+                console.error("Error loading logo:", e);
+                e.currentTarget.style.display = 'none';
+              }}
+            />
                 <h1 className="text-xl sm:text-2xl font-bold text-white whitespace-nowrap">Toonly AI</h1>
-            </div>
-            
+          </div>
+          
             <div className="hidden md:flex items-center justify-end gap-2 sm:gap-4 flex-grow">
-              <button 
+            <button 
                   onClick={() => setIsPricingModalOpen(true)}
-                className="bg-white/30 backdrop-blur-sm h-8 px-2 rounded-lg flex items-center text-white font-bold cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-white/40 hover:shadow-md active:scale-95"
-              >
+              className="bg-white/30 backdrop-blur-sm h-8 px-2 rounded-lg flex items-center text-white font-bold cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-white/40 hover:shadow-md active:scale-95"
+            >
                 <span className="whitespace-nowrap">Buy Stars</span>
-              </button>
-              
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div 
-                      className="bg-white/30 backdrop-blur-sm h-8 px-2 rounded-lg flex items-center text-white font-bold cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-white/40 hover:shadow-md active:scale-95"
-                    >
-                      <img 
-                        src="https://i.ibb.co/Rd8VZxC/Open-AI-Playground-2025-04-25-at-15-20-53.png" 
-                        alt="Credit Icon" 
-                        className="h-4 w-4 mr-1"
-                      />
+            </button>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div 
+                    className="bg-white/30 backdrop-blur-sm h-8 px-2 rounded-lg flex items-center text-white font-bold cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-white/40 hover:shadow-md active:scale-95"
+                  >
+                    <img 
+                      src="https://i.ibb.co/Rd8VZxC/Open-AI-Playground-2025-04-25-at-15-20-53.png" 
+                      alt="Credit Icon" 
+                      className="h-4 w-4 mr-1"
+                    />
                         <span className="flex items-center min-w-[20px] justify-center">
                           {isLoadingCredits ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -658,20 +672,20 @@ const Index = () => {
                               decimals={0} 
                             />
                           )}
-                      </span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent 
-                    side="bottom"
-                    className="bg-[#8b5e3c] text-white border-[#a87b5d] animate-bounce-in"
-                  >
-                    <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3" />
-                      <span>Stars</span>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent 
+                  side="bottom"
+                  className="bg-[#8b5e3c] text-white border-[#a87b5d] animate-bounce-in"
+                >
+                  <div className="flex items-center gap-1">
+                    <Star className="h-3 w-3" />
+                    <span>Stars</span>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
               {isAuthenticated ? (
                 <DropdownMenu>
@@ -763,9 +777,9 @@ const Index = () => {
                 </SheetContent>
               </Sheet>
             </div>
-          </div>
-        </header>
-      
+        </div>
+      </header>
+    
         {/* Add overflow constraint to main content area */}
         <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-x-hidden">
           <div className="text-center mb-12">
@@ -774,11 +788,11 @@ const Index = () => {
               Effortlessly transform your photos into stunning cartoon styles, pixel art, and more in seconds. 
               Simple upload, instant magic!
             </p>
-        </div>
-        
+      </div>
+      
           <div className="sm:max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto bg-[#e9e2d6]/70 backdrop-blur-sm rounded-xl playful-shadow playful-border p-4 sm:p-6 mb-16">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:divide-x md:divide-[#8b5e3c]/30 min-h-[500px] sm:min-h-[600px]">
-            <div className="space-y-6 md:pr-6">            
+          <div className="space-y-6 md:pr-6">            
               <ImageUpload onImageSelect={handleImageSelect} isUploading={isProcessing || isEditing} />
                 
                 {/* --- Edit Transformation Area (Subscribers Only) --- */}
@@ -799,36 +813,36 @@ const Index = () => {
                   </div>
                 )}
                 {/* --- End Edit Transformation Area --- */}
-              
-              <StyleSelector 
-                selectedStyle={selectedStyle} 
-                onChange={handleStyleChange} 
+            
+            <StyleSelector 
+              selectedStyle={selectedStyle} 
+              onChange={handleStyleChange} 
                 disabled={isProcessing || isEditing || (isAuthenticated && isSubscribed && !!processedImageUrl)}
-              />
-              
+            />
+            
               <div className="flex flex-col sm:flex-row gap-3">
-              <Button 
-                onClick={handleTransformClick}
+            <Button 
+              onClick={handleTransformClick}
                   className="flex-1 bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow flex items-center justify-center gap-2 w-full sm:w-auto text-base"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Transforming...</span>
-                  </>
-                ) : (
-                  <>
-                    <Brush className="h-4 w-4" />
-                    <span>Transform Image</span>
-                    <img 
-                      src="https://i.ibb.co/Rd8VZxC/Open-AI-Playground-2025-04-25-at-15-20-53.png" 
-                      alt="Credit Icon" 
-                      className="h-4 w-4"
-                    />
-                    <span>10</span>
-                  </>
-                )}
-              </Button>
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Transforming...</span>
+                </>
+              ) : (
+                <>
+                  <Brush className="h-4 w-4" />
+                  <span>Transform Image</span>
+                  <img 
+                    src="https://i.ibb.co/Rd8VZxC/Open-AI-Playground-2025-04-25-at-15-20-53.png" 
+                    alt="Credit Icon" 
+                    className="h-4 w-4"
+                  />
+                  <span>10</span>
+                </>
+              )}
+            </Button>
 
                 {/* New Edit Button (Subscribers Only, after transform) */} 
                 {isAuthenticated && isSubscribed && (
@@ -856,15 +870,15 @@ const Index = () => {
                   </Button>
                 )}
               </div>
-              
-              <div className="md:hidden">
+            
+            <div className="md:hidden">
                 {/* Pass combined loading state */}
                 <ImageResult imageUrl={processedImageUrl} isLoading={isProcessing || isEditing} onDownload={downloadImage} formattedProcessingTime={formattedProcessingTime} />
               </div>
-            </div>
-            
-            <div className="md:pl-6 flex items-center justify-center h-full">
-              <div className="hidden md:block w-full h-full stitch-border rounded-xl overflow-hidden bg-[#f4efe4]">
+          </div>
+          
+          <div className="md:pl-6 flex items-center justify-center h-full">
+            <div className="hidden md:block w-full h-full stitch-border rounded-xl overflow-hidden bg-[#f4efe4]">
                 {/* Pass combined loading state */}
                 <ImageResult imageUrl={processedImageUrl} isLoading={isProcessing || isEditing} onDownload={downloadImage} formattedProcessingTime={formattedProcessingTime} />
               </div>
@@ -944,8 +958,8 @@ const Index = () => {
                 <p className="text-center text-[#614e2e]/90">
                   Pick the perfect option to fuel your creativity. Each transformation costs 10 stars.
                 </p>
-        </div>
-        
+      </div>
+      
               <Tabs defaultValue="packages" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 bg-[#e9e2d6]/50 h-11 mb-6 border border-[#a87b5d]/50 rounded-lg">
                   <TabsTrigger value="packages" className="text-base data-[state=active]:bg-[#8b5e3c] data-[state=active]:text-white data-[state=active]:shadow-md rounded-md">Packages</TabsTrigger>
@@ -1099,18 +1113,18 @@ const Index = () => {
           </section>
            
           <footer className="mt-16 pt-8 text-center text-sm text-[#f4efe4]/90 border-t border-[#f4efe4]/20 [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)]">
-          <div className="flex flex-wrap items-center justify-center space-x-4">
+        <div className="flex flex-wrap items-center justify-center space-x-4">
             <Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <span>•</span>
+          <span>•</span>
             <Link to="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</Link>
-            <span>•</span>
+          <span>•</span>
             <Link to="/legal" className="hover:text-white transition-colors">Legal</Link>
-          </div>
-          <p className="mt-2 mb-4">© {new Date().getFullYear()} ToonlyAI. All rights reserved.</p>
-        </footer>
-      </main>
-      
-      <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
+        </div>
+        <p className="mt-2 mb-4">© {new Date().getFullYear()} ToonlyAI. All rights reserved.</p>
+      </footer>
+    </main>
+    
+    <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
         <DialogContent className="sm:max-w-md bg-[#3a2e23] border-[#5D4037] p-6 rounded-lg text-[#e9e2d6]">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-2xl font-bold text-center text-white">
@@ -1124,33 +1138,33 @@ const Index = () => {
             {/* Email Input (Common) */}
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
-              <Input 
-                type="email" 
+                    <Input 
+                      type="email" 
                 id="email-auth" 
-                placeholder="you@example.com" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                 disabled={isAuthLoading}
                 required
                 className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
-              />
-            </div>
+                    />
+                  </div>
 
             {/* Password Input (Sign In / Sign Up) */}
             {authMode !== 'forgotPassword' && (
               <div className="relative">
                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
-                 <Input 
-                  type="password" 
+                    <Input 
+                      type="password" 
                   id="password-auth" 
-                  placeholder="Password" 
+                      placeholder="Password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isAuthLoading}
                   required
                   className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
-                />
-              </div>
+                    />
+                  </div>
             )}
 
             {/* Confirm Password Input (Sign Up Only) */}
@@ -1167,7 +1181,7 @@ const Index = () => {
                   required
                   className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
                 />
-              </div>
+                </div>
             )}
             
             {/* Name Input (Sign Up Only) */}
@@ -1251,9 +1265,9 @@ const Index = () => {
                 <Button variant="link" className="text-[#e9e2d6]/70 hover:text-white h-auto p-0" onClick={() => setAuthMode('signIn')}>Back to Sign In</Button>
               )}
             </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </DialogFooter>
+      </DialogContent>
+    </Dialog>
         
         <PricingModal 
           isOpen={isPricingModalOpen} 
@@ -1261,7 +1275,7 @@ const Index = () => {
           userId={userId}
         />
 
-      </div>
+  </div>
     </SkeletonTheme>
   );
 };
