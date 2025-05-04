@@ -72,9 +72,11 @@ app.get('/', (req: Request, res: Response) => {
 
 // --- Handler function for getting credits ---
 async function handleGetUserCredits(req: Request, res: Response): Promise<void> {
-  console.log("[Credits Handler] Received request /api/user/credits"); // Log request start
+  console.log("[Credits Handler] Received request /api/user/credits");
   let dbClient;
   let sessionData;
+  let userId: string | null = null; // Declare userId outside try
+
   try {
     // 1. Check authentication
     const headers = new Headers();
@@ -90,13 +92,19 @@ async function handleGetUserCredits(req: Request, res: Response): Promise<void> 
       return;
     }
 
-    if (!sessionData?.session?.userId) {
-      console.log("[Credits Handler] Request unauthorized (no session/userId)."); // Log unauthorized
+    // --- Try assertion with optional chaining --- 
+    // @ts-ignore
+    const extractedUserId = (sessionData?.session as any)?.userId as string | undefined;
+    // --- End Try assertion --- 
+
+    if (!extractedUserId) { // Check if userId was found
+      console.log("[Credits Handler] Request unauthorized (no session/userId).");
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
-    const userId = sessionData.session.userId;
-    console.log(`[Credits Handler] User authenticated: ${userId}`); // Log auth success & user ID
+    userId = extractedUserId; // Assign to outer scope userId
+    
+    console.log(`[Credits Handler] User authenticated: ${userId}`);
     
     // 2. Connect to DB
     console.log(`[Credits Handler] Attempting DB connection for user ${userId}`);
@@ -123,7 +131,7 @@ async function handleGetUserCredits(req: Request, res: Response): Promise<void> 
     }
   } finally {
     if (dbClient) {
-      console.log(`[Credits Handler] Releasing DB connection for user ${sessionData?.session?.userId || 'unknown'}`);
+      console.log(`[Credits Handler] Releasing DB connection for user ${userId || 'unknown'}`);
       dbClient.release();
     }
   }
@@ -141,9 +149,11 @@ app.get('/api/user/credits', (req, res) => {
 
 // --- Handler function for getting user status ---
 async function handleGetUserStatus(req: Request, res: Response): Promise<void> {
-  console.log("[Status Handler] Received request /api/user/status"); // Log request start
+  console.log("[Status Handler] Received request /api/user/status");
   let dbClient;
   let sessionData;
+  let userId: string | null = null; // Declare userId outside try
+
   try {
     // 1. Check authentication
     const headers = new Headers();
@@ -159,13 +169,18 @@ async function handleGetUserStatus(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    if (!sessionData?.session?.userId) {
-      console.log("[Status Handler] Request unauthorized (no session/userId)."); // Log unauthorized
+    // --- Try assertion with optional chaining --- 
+    const extractedUserId = (sessionData?.session as any)?.userId as string | undefined;
+    // --- End Try assertion --- 
+
+    if (!extractedUserId) {
+      console.log("[Status Handler] Request unauthorized (no session/userId).");
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
-    const userId = sessionData.session.userId;
-    console.log(`[Status Handler] User authenticated: ${userId}`); // Log auth success
+    userId = extractedUserId; // Assign to outer scope userId
+
+    console.log(`[Status Handler] User authenticated: ${userId}`);
 
     // 2. Connect to DB
     console.log(`[Status Handler] Attempting DB connection for user ${userId}`);
@@ -192,7 +207,7 @@ async function handleGetUserStatus(req: Request, res: Response): Promise<void> {
     }
   } finally {
     if (dbClient) {
-      console.log(`[Status Handler] Releasing DB connection for user ${sessionData?.session?.userId || 'unknown'}`);
+      console.log(`[Status Handler] Releasing DB connection for user ${userId || 'unknown'}`);
       dbClient.release();
     }
   }
@@ -225,11 +240,14 @@ async function handleEditImageLogic(req: Request, res: Response): Promise<void> 
     return;
   }
 
-  if (!sessionData?.session?.userId) {
+  // --- Try assertion with optional chaining --- 
+  const userId = (sessionData?.session as any)?.userId as string | undefined;
+  // --- End Try assertion --- 
+
+  if (!userId) {
     res.status(401).json({ error: 'Unauthorized: No active session or user ID.' });
     return;
   }
-  const userId = sessionData.session.userId;
   
   let dbClient;
   let isSubscribedUser = false; // To track if this is a subscribed user edit

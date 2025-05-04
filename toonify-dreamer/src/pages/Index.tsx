@@ -5,7 +5,7 @@ import { StyleSelector } from "@/components/StyleSelector";
 import { ImageResult } from "@/components/ImageResult";
 import { imageEditService } from "@/services/imageEditService";
 import { toast } from "sonner";
-import { Loader2, Brush, Star, Sparkles, Pencil, Edit, Menu, X, CheckCircle2, MailWarning } from "lucide-react";
+import { Loader2, Brush, Star, Sparkles, Pencil, Edit, Menu, X, CheckCircle2, MailWarning, Mail, Lock, UserPlus, KeyRound, Send } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
@@ -68,14 +68,18 @@ const Index = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [email, setEmail] = useState("");
-  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
+  const [authMode, setAuthMode] = useState<'signIn' | 'signUp' | 'forgotPassword'>('signIn'); 
+  const [isAuthLoading, setIsAuthLoading] = useState(false); 
+  const [showVerificationNeeded, setShowVerificationNeeded] = useState(false); 
+  const [verificationEmail, setVerificationEmail] = useState(""); 
   const [sessionState, setSessionState] = useState<{ 
     data: Awaited<ReturnType<typeof authClient.getSession>>['data'] | null; 
     isLoading: boolean; 
     error: any | null; 
   }>({ data: null, isLoading: true, error: null });
-  const [isMagicLinkInfoModalOpen, setIsMagicLinkInfoModalOpen] = useState(false);
-  const [magicLinkSentToEmail, setMagicLinkSentToEmail] = useState("");
   
   // --- Determine if Mobile (can be done outside hooks now) ---
   // Note: This check runs on initial render and might not update if window is resized
@@ -88,33 +92,37 @@ const Index = () => {
     return false; // Default to false if window is not available
   }, []); // Empty dependency array means it calculates once on mount
 
-  // Fetch session manually on mount
-  useEffect(() => {
-    let isMounted = true;
-    const fetchSession = async () => {
-      console.log("[Frontend Index] Attempting to fetch session...");
-      setSessionState({ data: null, isLoading: true, error: null });
-      try {
-        const { data, error } = await authClient.getSession();
-        if (isMounted) {
-          if (error) {
-            console.error("[Frontend Index] Error fetching session:", error);
-            setSessionState({ data: null, isLoading: false, error });
-          } else {
-            console.log("[Frontend Index] Session fetched successfully:", data ? { session: !!data.session, user: !!data.user } : null);
-            setSessionState({ data, isLoading: false, error: null });
-          }
-        }
-      } catch (catchError) {
-        console.error("[Frontend Index] Exception fetching session:", catchError);
-        if (isMounted) {
-          setSessionState({ data: null, isLoading: false, error: catchError });
+  // --- Define fetchSession as useCallback ---
+  const fetchSession = useCallback(async (isMountedCheck = true) => {
+    console.log("[Frontend Index] Attempting to fetch session (callable)...");
+    setSessionState(prevState => ({ ...prevState, isLoading: true, error: null }));
+    try {
+      const { data, error } = await authClient.getSession();
+      // Basic check to prevent setting state if unmounted during await
+      // (A more robust check might involve a ref if needed)
+      if (isMountedCheck) { 
+        if (error) {
+          console.error("[Frontend Index] Error fetching session (callable):", error);
+          setSessionState({ data: null, isLoading: false, error });
+        } else {
+          console.log("[Frontend Index] Session fetched successfully (callable):", data ? { session: !!data.session, user: !!data.user } : null);
+          setSessionState({ data, isLoading: false, error: null });
         }
       }
-    };
-    fetchSession();
-    return () => { isMounted = false; }; // Cleanup function
-  }, []); // Empty dependency array ensures it runs only once on mount
+    } catch (catchError) {
+      console.error("[Frontend Index] Exception fetching session (callable):", catchError);
+      if (isMountedCheck) {
+         setSessionState({ data: null, isLoading: false, error: catchError });
+      }
+    }
+  }, []); // Empty dependency array, as it doesn't depend on component state/props
+
+  // Fetch session manually on mount using the callable function
+  useEffect(() => {
+    let isMounted = true;
+    fetchSession(isMounted); // Pass mount status
+    return () => { isMounted = false; }; // Cleanup remains important
+  }, [fetchSession]); // Depend on fetchSession
 
   // Derive authentication status and user data
   const session = sessionState.data?.session;
@@ -381,53 +389,113 @@ const Index = () => {
     document.body.removeChild(link);
   }, [processedImageUrl, selectedStyle]);
 
-  const handleMagicLinkLogin = async () => {
+  const handleSignUp = async () => {
+    if (!email || !password || !confirmPassword || !name) {
+      toast.error("Please fill in all required fields for sign up.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+    if (password.length < 8) {
+       toast.error("Password must be at least 8 characters long.");
+       return;
+    }
+    setIsAuthLoading(true);
+    setShowVerificationNeeded(false);
+    try {
+      const { data, error } = await authClient.signUp.email({
+        email,
+        password,
+        name,
+      });
+      if (error) { throw error; }
+      toast.success("Sign up successful! Please check your email to verify your account before signing in.");
+      setAuthMode('signIn'); 
+      setPassword("");
+      setConfirmPassword("");
+      setName("");
+    } catch (error: any) {
+      console.error("Sign up error:", error);
+      toast.error(error.message || "Sign up failed. Please try again.");
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      toast.error("Please enter both email and password.");
+      return;
+    }
+    setIsAuthLoading(true);
+    setShowVerificationNeeded(false); 
+    try {
+      const { data, error } = await authClient.signIn.email({ email, password });
+      if (error) { throw error; }
+      toast.success("Sign in successful!");
+      setIsAuthModalOpen(false);
+      setEmail(""); 
+      setPassword("");
+      await fetchSession(true); // Call fetchSession after successful sign-in
+    } catch (error: any) {
+      console.error("Sign in error:", error);
+      if (error.status === 403 && error.message?.includes('verify')) {
+        toast.error("Please verify your email address first.");
+        setShowVerificationNeeded(true);
+        setVerificationEmail(email);
+      } else {
+        toast.error(error.message || "Sign in failed. Please check your credentials.");
+      }
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
     if (!email) {
       toast.error("Please enter your email address.");
       return;
     }
-    // Add validation if needed, e.g., check email format
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      toast.error("Please enter a valid email address.");
-      return;
-    }
-    
-    setIsSendingMagicLink(true);
+    setIsAuthLoading(true);
     try {
-      // Use the correct signIn method with callbackURL directly
-      const callbackURL = import.meta.env.VITE_APP_BASE_URL || window.location.origin; // Use origin as fallback
-      const { data, error } = await authClient.signIn.magicLink({
-        email,
-        callbackURL: callbackURL // Provide callbackURL directly
-      });
-
-      if (error) {
-        // Handle potential errors from better-auth client-side method
-        throw new Error(error.message || "Failed to send magic link");
-      }
-      
-      // --- Success: Show Modal instead of Toast --- 
-      setMagicLinkSentToEmail(email); // Store email for the modal
-      setIsMagicLinkInfoModalOpen(true); // Open the new modal
-      setIsAuthModalOpen(false); // Close the original login modal
-      setEmail(""); // Clear email field after sending
-      // --- End Modal Logic ---
-
+      const redirectTo = `${window.location.origin}/reset-password`; 
+      const { data, error } = await authClient.forgetPassword({ email, redirectTo });
+      if (error) { throw error; }
+      toast.success("Password reset email sent! Please check your inbox.");
+      setIsAuthModalOpen(false);
+      setEmail("");
+      setAuthMode('signIn'); 
     } catch (error: any) {
-      console.error("Magic link login error:", error);
-      toast.error(error.message || "Failed to send magic link. Please try again.");
+      console.error("Forgot password error:", error);
+      toast.error(error.message || "Failed to send password reset email.");
     } finally {
-      setIsSendingMagicLink(false);
+      setIsAuthLoading(false);
     }
   };
 
+  const handleResendVerification = async () => {
+     if (!verificationEmail) return;
+     setIsAuthLoading(true);
+     try {
+        await authClient.sendVerificationEmail({ email: verificationEmail });
+        toast.success(`Verification email resent to ${verificationEmail}. Please check your inbox.`);
+        setShowVerificationNeeded(false);
+     } catch (error: any) {
+        console.error("Resend verification error:", error);
+        toast.error(error.message || "Failed to resend verification email.");
+     } finally {
+        setIsAuthLoading(false);
+     }
+  };
+  
   // Restore the handleSignOut function
   const handleSignOut = async () => {
     try {
       console.log("[Frontend Index] Signing out...");
       await authClient.signOut();
       console.log("[Frontend Index] Sign out successful, clearing session state.");
-      // Manually clear session state after successful sign out
       setSessionState({ data: null, isLoading: false, error: null });
       toast.success("Signed out successfully!");
     } catch (error) {
@@ -435,6 +503,29 @@ const Index = () => {
       toast.error("Failed to sign out.");
     }
   };
+
+  // Add useEffects for clearing state on mode change / modal close
+  useEffect(() => {
+    if (!isAuthModalOpen) {
+      setPassword("");
+      setConfirmPassword("");
+      setName("");
+      setShowVerificationNeeded(false); 
+      setVerificationEmail("");
+      setAuthMode('signIn'); 
+    }
+  }, [isAuthModalOpen]);
+  
+  useEffect(() => {
+      if (authMode !== 'signUp') {
+          setConfirmPassword("");
+          setName("");
+      }
+      if (authMode === 'forgotPassword') {
+           setPassword("");
+      }
+      setShowVerificationNeeded(false); 
+  }, [authMode]);
 
   // --- Timer Logic using requestAnimationFrame ---
   useEffect(() => {
@@ -1020,70 +1111,147 @@ const Index = () => {
       </main>
       
       <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
-        <DialogContent className="sm:max-w-3xl bg-[#3a2e23] border-[#5D4037] p-0 overflow-hidden rounded-lg">
-          <div className="flex">
-            <div className="w-1/3 hidden md:block">
-              <img 
-                src="/images/theGalazy.png"
-                alt="Galaxy"
-                className="object-cover h-full w-full"
+        <DialogContent className="sm:max-w-md bg-[#3a2e23] border-[#5D4037] p-6 rounded-lg text-[#e9e2d6]">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-2xl font-bold text-center text-white">
+              {authMode === 'signIn' && 'Sign In to Toonly AI'}
+              {authMode === 'signUp' && 'Create Your Toonly AI Account'}
+              {authMode === 'forgotPassword' && 'Reset Your Password'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Email Input (Common) */}
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
+              <Input 
+                type="email" 
+                id="email-auth" 
+                placeholder="you@example.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isAuthLoading}
+                required
+                className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
               />
             </div>
 
-            <div className="w-full md:w-2/3 p-8 flex flex-col justify-between">
-              <DialogHeader className="text-left mb-6">
-                <DialogTitle className="text-3xl font-bold text-[#e9e2d6] mb-4">Turn Moments into Magic with Toonly AI</DialogTitle>
-                <div className="space-y-4 text-[#f4efe4]/80">
-                  <section>
-                    <h3 className="text-lg font-semibold text-[#f4efe4]/90 mb-1">Join the Fun</h3>
-                      <p className="text-sm">Instantly transform your images into cartoons and other art styles.</p>
-                  </section>
-                  <section>
-                    <h3 className="text-lg font-semibold text-[#f4efe4]/90 mb-1">Why Sign Up?</h3>
-                    <ul className="list-disc list-inside text-sm space-y-1 pl-2">
-                      <li>🎨 Choose from 100+ cartoon, art, anime styles and more</li>
-                      <li>✨ Edit, customize and personalize every detail</li>
-                      <li>😂 Create funny images that will crack everyone up</li>
-                      <li>🚀 Share your creations instantly with friends!</li>
-                    </ul>
-                    
-                  </section>
-                  <div className="space-y-4 py-4">
-                    <div className="grid w-full items-center gap-1.5 mb-10">
-                      <Label htmlFor="email-magic" className="text-[#f4efe4]/90">Email</Label>
-                      <Input 
-                        type="email" 
-                        id="email-magic"
-                        placeholder="you@example.com" 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={isSendingMagicLink}
-                        className="bg-[#e9e2d6]/20 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/70 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </DialogHeader>
-              
-              <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-3 mt-auto">
-                <Button 
-                  type="button" 
-                  onClick={handleMagicLinkLogin}
-                  disabled={isSendingMagicLink}
-                  className="btn-starry text-white w-full sm:w-auto flex items-center justify-center gap-2 transition-shadow duration-300"
+            {/* Password Input (Sign In / Sign Up) */}
+            {authMode !== 'forgotPassword' && (
+              <div className="relative">
+                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
+                 <Input 
+                  type="password" 
+                  id="password-auth" 
+                  placeholder="Password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isAuthLoading}
+                  required
+                  className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
+                />
+              </div>
+            )}
+
+            {/* Confirm Password Input (Sign Up Only) */}
+            {authMode === 'signUp' && (
+               <div className="relative">
+                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
+                 <Input 
+                  type="password" 
+                  id="confirm-password-auth" 
+                  placeholder="Confirm Password" 
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isAuthLoading}
+                  required
+                  className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
+                />
+              </div>
+            )}
+            
+            {/* Name Input (Sign Up Only) */}
+            {authMode === 'signUp' && (
+               <div className="relative">
+                 <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
+                 <Input 
+                  type="text" 
+                  id="name-auth" 
+                  placeholder="Your Name" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={isAuthLoading}
+                  required
+                  className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
+                />
+              </div>
+            )}
+            
+            {/* Verification Needed Message & Resend Button */}    
+            {showVerificationNeeded && (
+              <div className="bg-yellow-900/30 border border-yellow-700 text-yellow-300 text-xs p-3 rounded-md text-center space-y-2">
+                <p>Please check your inbox (and spam folder) for the verification email.</p>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={handleResendVerification}
+                  disabled={isAuthLoading}
+                  className="text-yellow-200 hover:text-yellow-100 h-auto p-0 disabled:opacity-50"
                 >
-                  {isSendingMagicLink ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" /> 
-                  )}
-                  <span>
-                    {isSendingMagicLink ? "Sending Link..." : "Sign In with a Magic Link"}
-                  </span> 
+                   {isAuthLoading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Send className="mr-1 h-3 w-3" />} Resend Verification Email
                 </Button>
-              </DialogFooter>
-            </div>
+              </div>
+            )}
+
           </div>
+
+          <DialogFooter className="mt-6 flex flex-col gap-3">
+            {/* Action Buttons */}
+            {authMode === 'signIn' && (
+              <Button 
+                onClick={handleSignIn} 
+                disabled={isAuthLoading || !email || !password}
+                className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
+              >
+                {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserIcon className="mr-2 h-4 w-4" />} Sign In
+              </Button>
+            )}
+            {authMode === 'signUp' && (
+              <Button 
+                onClick={handleSignUp} 
+                disabled={isAuthLoading || !email || !password || !confirmPassword || !name}
+                className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
+              >
+                 {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />} Sign Up
+              </Button>
+            )}
+            {authMode === 'forgotPassword' && (
+              <Button 
+                onClick={handleForgotPassword} 
+                disabled={isAuthLoading || !email}
+                className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
+              >
+                 {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />} Send Reset Link
+              </Button>
+            )}
+
+            {/* Toggle Links */}
+            <div className="text-center text-xs mt-2">
+              {authMode === 'signIn' && (
+                <>
+                  <Button variant="link" className="text-[#e9e2d6]/70 hover:text-white h-auto p-0" onClick={() => setAuthMode('signUp')}>Don't have an account? Sign Up</Button>
+                  <span className="mx-2 text-[#e9e2d6]/40">|</span>
+                  <Button variant="link" className="text-[#e9e2d6]/70 hover:text-white h-auto p-0" onClick={() => setAuthMode('forgotPassword')}>Forgot Password?</Button>
+                </>
+              )}
+              {authMode === 'signUp' && (
+                <Button variant="link" className="text-[#e9e2d6]/70 hover:text-white h-auto p-0" onClick={() => setAuthMode('signIn')}>Already have an account? Sign In</Button>
+              )}
+              {authMode === 'forgotPassword' && (
+                <Button variant="link" className="text-[#e9e2d6]/70 hover:text-white h-auto p-0" onClick={() => setAuthMode('signIn')}>Back to Sign In</Button>
+              )}
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
         
@@ -1093,43 +1261,7 @@ const Index = () => {
           userId={userId}
         />
 
-        {/* --- Magic Link Sent Info Dialog --- */}
-        <Dialog open={isMagicLinkInfoModalOpen} onOpenChange={setIsMagicLinkInfoModalOpen}>
-          <DialogContent className="sm:max-w-md bg-[#3a2e23] border-[#5D4037] text-[#e9e2d6] p-6 rounded-lg shadow-xl">
-            <DialogHeader className="flex flex-col items-center text-center mb-4">
-              <CheckCircle2 className="h-12 w-12 text-green-400 mb-3" />
-              <DialogTitle className="text-xl font-semibold text-white">Magic Link Sent!</DialogTitle>
-            </DialogHeader>
-            <div className="text-sm text-[#f4efe4]/80 space-y-4">
-              <p className="text-center">
-                A magic sign-in link has been sent to your email address:
-              </p>
-              {/* Styled email address */}
-              <p className="text-center font-medium text-white bg-[#5D4037]/50 px-3 py-2 rounded-md break-all">
-                {magicLinkSentToEmail}
-              </p>
-              {/* Styled warning message */}
-              <div className="bg-[#8b5e3c]/30 border border-[#a87b5d]/50 p-3 rounded-md flex items-start space-x-2">
-                <MailWarning className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-yellow-300 leading-relaxed">
-                  <span className="font-semibold">Important:</span> Please open the email and click the link on <span className="underline font-medium">this exact same device and browser</span>. Using a different one won't work.
-                </p>
-              </div>
-            </div>
-            <DialogFooter className="mt-6">
-               <DialogClose asChild>
-                 {/* Styled button */}
-                 <Button 
-                   type="button" 
-                   className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow text-sm"
-                  >
-                   OK
-                 </Button>
-               </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-    </div>
+      </div>
     </SkeletonTheme>
   );
 };
