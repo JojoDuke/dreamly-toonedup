@@ -415,7 +415,7 @@ const Index = () => {
       // --- Trigger verification email manually --- 
       try {
         console.log(`[Frontend Index] Signup successful, attempting to send verification email to ${email}...`);
-        await authClient.sendVerificationEmail({ email });
+        await authClient.sendVerificationEmail({ email, callbackURL: "https://toonlyai.com" });
         console.log(`[Frontend Index] Verification email request sent for ${email}.`);
       } catch (verificationError: any) {
          console.error("[Frontend Index] Failed to trigger verification email after signup:", verificationError);
