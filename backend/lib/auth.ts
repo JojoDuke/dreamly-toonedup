@@ -39,10 +39,9 @@ export const auth = betterAuth({
     database: authDbPool,
     emailAndPassword: { 
         enabled: true, 
-        requireEmailVerification: true, // Require verification before login
+        // Remove or set to false to disable implicit verification/requirement
+        // requireEmailVerification: true, 
         
-        
-
         // --- Add sendResetPassword --- 
         sendResetPassword: async (
             { user, url, token }: { user: User; url: string; token: string },
