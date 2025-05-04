@@ -55,6 +55,9 @@ const corsOptions: cors.CorsOptions = {
 app.use(cors(corsOptions));
 
 // --- BetterAuth ---
+// Note: The /api/auth/* endpoints (login, logout, session retrieval) are handled by better-auth.
+// Logging *inside* these specific handlers might require checking better-auth's configuration options.
+// However, handlers below that *use* auth.api.getSession() will log the outcome of the session check.
 app.all('/api/auth/{*any}', toNodeHandler(auth));
 
 // Middleware to parse JSON request bodies
@@ -69,6 +72,7 @@ app.get('/', (req: Request, res: Response) => {
 
 // --- Handler function for getting credits ---
 async function handleGetUserCredits(req: Request, res: Response): Promise<void> {
+  console.log("[Credits Handler] Received request /api/user/credits"); // Log request start
   let dbClient;
   let sessionData;
   try {
@@ -87,31 +91,39 @@ async function handleGetUserCredits(req: Request, res: Response): Promise<void> 
     }
 
     if (!sessionData?.session?.userId) {
+      console.log("[Credits Handler] Request unauthorized (no session/userId)."); // Log unauthorized
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
     const userId = sessionData.session.userId;
+    console.log(`[Credits Handler] User authenticated: ${userId}`); // Log auth success & user ID
     
     // 2. Connect to DB
+    console.log(`[Credits Handler] Attempting DB connection for user ${userId}`);
     dbClient = await pool.connect();
+    console.log(`[Credits Handler] DB connected for user ${userId}`);
 
     // 3. Fetch credits
+    console.log(`[Credits Handler] Attempting to fetch credits for user: ${userId}`); // Log before query
     const userResult = await dbClient.query('SELECT credits FROM "user" WHERE id = $1', [userId]);
+    
     if (userResult.rows.length === 0) {
       console.warn(`[Credits Handler] User ${userId} not found in user table. Returning 0 credits.`);
       res.json({ credits: 0 });
     } else {
       const currentCredits = userResult.rows[0].credits;
+      console.log(`[Credits Handler] Fetched credits for user ${userId}: ${currentCredits}`); // Log successful fetch
       res.json({ credits: currentCredits });
     }
 
   } catch (error: any) {
-    console.error(`[Credits Handler] Error fetching credits for user:`, error);
+    console.error(`[Credits Handler] Error processing request for user:`, error); // Keep detailed error log
     if (!res.headersSent) {
       res.status(500).json({ error: 'Internal server error fetching credits.' });
     }
   } finally {
     if (dbClient) {
+      console.log(`[Credits Handler] Releasing DB connection for user ${sessionData?.session?.userId || 'unknown'}`);
       dbClient.release();
     }
   }
@@ -129,6 +141,7 @@ app.get('/api/user/credits', (req, res) => {
 
 // --- Handler function for getting user status ---
 async function handleGetUserStatus(req: Request, res: Response): Promise<void> {
+  console.log("[Status Handler] Received request /api/user/status"); // Log request start
   let dbClient;
   let sessionData;
   try {
@@ -147,6 +160,7 @@ async function handleGetUserStatus(req: Request, res: Response): Promise<void> {
     }
 
     if (!sessionData?.session?.userId) {
+      console.log("[Status Handler] Request unauthorized (no session/userId)."); // Log unauthorized
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
@@ -154,9 +168,12 @@ async function handleGetUserStatus(req: Request, res: Response): Promise<void> {
     console.log(`[Status Handler] User authenticated: ${userId}`); // Log auth success
 
     // 2. Connect to DB
+    console.log(`[Status Handler] Attempting DB connection for user ${userId}`);
     dbClient = await pool.connect();
+    console.log(`[Status Handler] DB connected for user ${userId}`);
 
     // 3. Fetch subscription status
+    console.log(`[Status Handler] Attempting to fetch status for user: ${userId}`); // Log before query
     const userResult = await dbClient.query('SELECT subscription_active FROM "user" WHERE id = $1', [userId]);
     
     let isSubscribed = false; // Default to false
@@ -164,16 +181,18 @@ async function handleGetUserStatus(req: Request, res: Response): Promise<void> {
       console.warn(`[Status Handler] User ${userId} not found in user table. Returning isSubscribed: false.`);
     } else {
       isSubscribed = userResult.rows[0].subscription_active || false; // Handle null/undefined just in case
+      console.log(`[Status Handler] Fetched status for user ${userId}: isSubscribed=${isSubscribed}`); // Log successful fetch
     }
     res.json({ isSubscribed });
 
   } catch (error: any) {
-    console.error(`[Status Handler] Error fetching status for user:`, error);
+    console.error(`[Status Handler] Error processing request for user:`, error); // Keep detailed error log
     if (!res.headersSent) {
       res.status(500).json({ error: 'Internal server error fetching status.' });
     }
   } finally {
     if (dbClient) {
+      console.log(`[Status Handler] Releasing DB connection for user ${sessionData?.session?.userId || 'unknown'}`);
       dbClient.release();
     }
   }
