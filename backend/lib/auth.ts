@@ -98,6 +98,34 @@ export const auth = betterAuth({
         // Optionally configure password complexity, reset token expiry etc.
         // resetPasswordTokenExpiresIn: 3600, // Example: 1 hour
       }, 
+    // --- Add top-level emailVerification block --- 
+    emailVerification: {
+      sendVerificationEmail: async (
+          { user, url, token }: { user: User; url: string; token: string }, 
+          request: any // Keep any for now
+      ) => {
+        console.log(`[Auth] Sending verification email to ${user.email}`);
+        try {
+          await resend.emails.send({
+            from: 'Toonly AI <hey@usemidas.app>',
+            to: user.email,
+            subject: 'Verify Your Email for Toonly AI',
+            html: `
+              <p>Welcome to Toonly AI!</p>
+              <p>Please click the link below to verify your email address:</p>
+              <p><a href="${url}">Verify Email</a></p>
+              <p>If you didn't sign up for Toonly AI, you can ignore this email.</p>
+              <p>Link: ${url}</p>
+            `,
+          });
+          console.log(`[Auth] Verification email sent successfully to ${user.email}`);
+        } catch (error) {
+          console.error(`[Auth] Failed to send verification email to ${user.email}:`, error);
+        }
+      },
+      // Optionally configure verification token expiry if needed
+      // verificationTokenExpiresIn: 3600 * 24 // Example: 24 hours
+    },
     plugins: [ 
        // REMOVE magicLink plugin
        /*
