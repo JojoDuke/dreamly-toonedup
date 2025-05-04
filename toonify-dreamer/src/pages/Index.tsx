@@ -446,7 +446,12 @@ const Index = () => {
     setIsAuthLoading(true);
     setShowVerificationNeeded(false); 
     try {
-      const { data, error } = await authClient.signIn.email({ email, password });
+      const callbackUrl = import.meta.env.VITE_APP_BASE_URL;
+      const { data, error } = await authClient.signIn.email({ 
+          email, 
+          password, 
+          callbackURL: callbackUrl 
+      });
       if (error) { throw error; }
       toast.success("Sign in successful!");
       setIsAuthModalOpen(false);
