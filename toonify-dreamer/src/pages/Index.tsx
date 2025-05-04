@@ -412,18 +412,6 @@ const Index = () => {
       });
       if (error) { throw error; }
 
-      // --- Trigger verification email manually --- 
-      try {
-        console.log(`[Frontend Index] Signup successful, attempting to send verification email to ${email}...`);
-        await authClient.sendVerificationEmail({ email, callbackURL: "https://toonlyai.com" });
-        console.log(`[Frontend Index] Verification email request sent for ${email}.`);
-      } catch (verificationError: any) {
-         console.error("[Frontend Index] Failed to trigger verification email after signup:", verificationError);
-         // Don't block signup success message, but maybe log?
-         toast.warning("Signup successful, but failed to automatically send verification email. You may need to request it manually via Sign In.");
-      }
-      // --- End trigger --- 
-
       toast.success("Sign up successful! Please check your email to verify your account before signing in.");
       setAuthMode('signIn'); 
       setPassword("");
