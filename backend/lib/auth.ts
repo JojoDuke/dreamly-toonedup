@@ -4,6 +4,11 @@ import dotenv from "dotenv";
 import { magicLink } from "better-auth/plugins";
 import { Resend } from "resend";
 
+// Use the public URL directly
+const theWizardUrl = "https://imgur.com/B7ptMnm";
+
+//https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png
+
 dotenv.config({ path: '.env.local' });
 
 console.log("[auth.ts] Creating database pool for auth...");
@@ -38,6 +43,7 @@ export const auth = betterAuth({
       }, 
     plugins: [
         magicLink({
+            expiresIn: 1800,
             sendMagicLink: async ({ email, token, url }, request) => {
                 // send email to user
                 console.log(`Sending magic link to ${email} with token ${token} and url ${url}`);
@@ -58,7 +64,7 @@ export const auth = betterAuth({
                             <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                                 <tr>
                                     <td valign="middle" style="padding-right: 15px;">
-                                        <img src="https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png" alt="Toonly AI Wizard" width="70" style="display: block; border: 0;">
+                                        <img src="${theWizardUrl}" alt="Toonly AI Wizard" width="70" style="display: block; border: 0;">
                                     </td>
                                     <td valign="middle">
                                         <h1 style="margin: 0; color: #f9f4e3; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; font-family: 'Sentient', serif;">Toonly AI</h1>
@@ -71,7 +77,7 @@ export const auth = betterAuth({
                     <tr>
                         <td align="left" style="padding: 40px 30px 20px 30px; color: #614e2e; font-family: 'Sentient', serif;">
                             <h2 style="margin: 0 0 20px 0; font-size: 20px; line-height: 28px; font-weight: 600; color: #614e2e; font-family: 'Sentient', serif;">Sign in to Toonly AI</h2>
-                            <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #614e2e; font-family: 'Sentient', serif;">We've created a magic sign-in link for you. Click the button below to sign in and start using Toonly AI. For security reasons, this link will expire in 5 minutes.</p>
+                            <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #614e2e; font-family: 'Sentient', serif;">We've created a magic sign-in link for you. Click the button below to sign in and start using Toonly AI. For security reasons, this link will expire in 30 minutes.</p>
                             
                             <!-- Magic Link Button -->
                             <table border="0" cellpadding="0" cellspacing="0" width="100%" style="min-width: 100%; margin-bottom: 30px;">
@@ -94,7 +100,7 @@ export const auth = betterAuth({
                                 ${url}
                             </p>
                             
-                            <p style="margin: 0; font-size: 14px; line-height: 22px; color: #7d6545; font-family: 'Sentient', serif;">This link expires in 5 minutes for security reasons.</p>
+                            <p style="margin: 0; font-size: 14px; line-height: 22px; color: #7d6545; font-family: 'Sentient', serif;">This link expires in 30 minutes for security reasons.</p>
                         </td>
                     </tr>
                     <!-- Footer -->

@@ -5,7 +5,7 @@ import { StyleSelector } from "@/components/StyleSelector";
 import { ImageResult } from "@/components/ImageResult";
 import { imageEditService } from "@/services/imageEditService";
 import { toast } from "sonner";
-import { Loader2, Brush, Star, Sparkles, Pencil, Edit, Menu, X } from "lucide-react";
+import { Loader2, Brush, Star, Sparkles, Pencil, Edit, Menu, X, CheckCircle2, MailWarning } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
@@ -74,8 +74,20 @@ const Index = () => {
     isLoading: boolean; 
     error: any | null; 
   }>({ data: null, isLoading: true, error: null });
-  const [isMobileDisclaimerOpen, setIsMobileDisclaimerOpen] = useState(false);
+  const [isMagicLinkInfoModalOpen, setIsMagicLinkInfoModalOpen] = useState(false);
+  const [magicLinkSentToEmail, setMagicLinkSentToEmail] = useState("");
   
+  // --- Determine if Mobile (can be done outside hooks now) ---
+  // Note: This check runs on initial render and might not update if window is resized
+  // without a component reload. For this use case (blocking initial mobile access), it's sufficient.
+  const isMobileView = useMemo(() => {
+     // Check if window exists (for server-side rendering safety, though less relevant in Vite/CSR)
+    if (typeof window !== 'undefined') { 
+       return window.innerWidth < 768;
+    } 
+    return false; // Default to false if window is not available
+  }, []); // Empty dependency array means it calculates once on mount
+
   // Fetch session manually on mount
   useEffect(() => {
     let isMounted = true;
@@ -103,27 +115,6 @@ const Index = () => {
     fetchSession();
     return () => { isMounted = false; }; // Cleanup function
   }, []); // Empty dependency array ensures it runs only once on mount
-
-  // Check for mobile view on mount and show disclaimer if needed
-  useEffect(() => {
-    const checkMobileAndShowDisclaimer = () => {
-      const isMobileView = window.innerWidth < 768; // Use 768px as the breakpoint (Tailwind's md)
-      const disclaimerShown = sessionStorage.getItem('mobileDisclaimerShown');
-
-      if (isMobileView && !disclaimerShown) {
-        console.log("[Mobile Check] Detected mobile view, showing disclaimer");
-        setIsMobileDisclaimerOpen(true);
-        sessionStorage.setItem('mobileDisclaimerShown', 'true'); // Mark as shown for this session
-      } else {
-        console.log("[Mobile Check] Desktop view or disclaimer already shown.");
-      }
-    };
-
-    // Check on initial mount after a short delay to ensure layout is stable
-    const timer = setTimeout(checkMobileAndShowDisclaimer, 100); 
-
-    return () => clearTimeout(timer); // Cleanup timer on unmount
-  }, []); // Run only once on mount
 
   // Derive authentication status and user data
   const session = sessionState.data?.session;
@@ -390,44 +381,47 @@ const Index = () => {
     document.body.removeChild(link);
   }, [processedImageUrl, selectedStyle]);
 
-  const handleMagicLinkSignIn = useCallback(async () => {
+  const handleMagicLinkLogin = async () => {
     if (!email) {
       toast.error("Please enter your email address.");
       return;
     }
-    
+    // Add validation if needed, e.g., check email format
     if (!/\S+@\S+\.\S+/.test(email)) {
       toast.error("Please enter a valid email address.");
       return;
     }
-
+    
     setIsSendingMagicLink(true);
-    console.log(`[Frontend Index] Requesting magic link for: ${email}`);
     try {
-      const callbackURL = import.meta.env.VITE_APP_BASE_URL;
-
+      // Use the correct signIn method with callbackURL directly
+      const callbackURL = import.meta.env.VITE_APP_BASE_URL || window.location.origin; // Use origin as fallback
       const { data, error } = await authClient.signIn.magicLink({
         email,
-        callbackURL: callbackURL, 
+        callbackURL: callbackURL // Provide callbackURL directly
       });
 
       if (error) {
-        console.error("[Frontend Index] Magic link request error:", error);
-        toast.error(error.message || "Failed to send magic link. Please try again.");
-      } else {
-        console.log("[Frontend Index] Magic link request success:", data);
-        toast.success("Magic link sent! Check your email (including Spam/Promotions) to sign in.");
-        setIsAuthModalOpen(false);
-        setEmail("");
+        // Handle potential errors from better-auth client-side method
+        throw new Error(error.message || "Failed to send magic link");
       }
-    } catch (error) {
-      console.error("[Frontend Index] Error sending magic link:", error);
-      toast.error("An unexpected error occurred. Please try again.");
+      
+      // --- Success: Show Modal instead of Toast --- 
+      setMagicLinkSentToEmail(email); // Store email for the modal
+      setIsMagicLinkInfoModalOpen(true); // Open the new modal
+      setIsAuthModalOpen(false); // Close the original login modal
+      setEmail(""); // Clear email field after sending
+      // --- End Modal Logic ---
+
+    } catch (error: any) {
+      console.error("Magic link login error:", error);
+      toast.error(error.message || "Failed to send magic link. Please try again.");
     } finally {
       setIsSendingMagicLink(false);
     }
-  }, [email]);
+  };
 
+  // Restore the handleSignOut function
   const handleSignOut = async () => {
     try {
       console.log("[Frontend Index] Signing out...");
@@ -504,6 +498,26 @@ const Index = () => {
     }
   }, [processingTimeMs]); // Use useMemo for efficiency
 
+  // --- Conditional Rendering based on Mobile Detection (using isMobileView directly) ---
+  if (isMobileView) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#a87b5d] text-white p-4 text-center">
+        <div className="max-w-md">
+          <img 
+            src="https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png" 
+            alt="ToonlyAI Wizard Logo" 
+            className="h-24 w-24 object-contain mx-auto mb-6"
+          />
+          <h1 className="text-2xl font-bold mb-4">Mobile Access Limited</h1>
+          <p className="text-lg">
+            Toonly AI is designed for desktop use. Please open Toonly AI on a desktop computer for the full experience.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Render the main application UI if not mobile --- 
   return (
     <SkeletonTheme baseColor="#e0d8c7" highlightColor="#f4efe4">
       <div className="bg-[url('https://i.ibb.co/DDcDBgws/Chat-GPT-Image-Apr-3-2025-07-56-00-PM.png')] bg-cover bg-center min-h-screen w-full backdrop-blur-sm md:bg-fixed">
@@ -1054,7 +1068,7 @@ const Index = () => {
               <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-3 mt-auto">
                 <Button 
                   type="button" 
-                  onClick={handleMagicLinkSignIn}
+                  onClick={handleMagicLinkLogin}
                   disabled={isSendingMagicLink}
                   className="btn-starry text-white w-full sm:w-auto flex items-center justify-center gap-2 transition-shadow duration-300"
                 >
@@ -1079,23 +1093,39 @@ const Index = () => {
           userId={userId}
         />
 
-        {/* --- Mobile Disclaimer Modal --- */}
-        <Dialog open={isMobileDisclaimerOpen} onOpenChange={setIsMobileDisclaimerOpen}>
-          <DialogContent className="sm:max-w-xs md:max-w-sm bg-[#3a2e23] border-[#5D4037] text-[#e9e2d6] p-6 rounded-lg shadow-xl">
-            <DialogHeader className="text-center mb-4">
-              <DialogTitle className="text-lg font-semibold text-white">Mobile Experience Note</DialogTitle>
+        {/* --- Magic Link Sent Info Dialog --- */}
+        <Dialog open={isMagicLinkInfoModalOpen} onOpenChange={setIsMagicLinkInfoModalOpen}>
+          <DialogContent className="sm:max-w-md bg-[#3a2e23] border-[#5D4037] text-[#e9e2d6] p-6 rounded-lg shadow-xl">
+            <DialogHeader className="flex flex-col items-center text-center mb-4">
+              <CheckCircle2 className="h-12 w-12 text-green-400 mb-3" />
+              <DialogTitle className="text-xl font-semibold text-white">Magic Link Sent!</DialogTitle>
             </DialogHeader>
-            <div className="text-center text-[#f4efe4]/80 text-sm">
-              <p>Toonly AI is fully functional on mobile, but for the best experience (especially drag & drop and viewing details), we recommend using a desktop browser.</p>
+            <div className="text-sm text-[#f4efe4]/80 space-y-4">
+              <p className="text-center">
+                A magic sign-in link has been sent to your email address:
+              </p>
+              {/* Styled email address */}
+              <p className="text-center font-medium text-white bg-[#5D4037]/50 px-3 py-2 rounded-md break-all">
+                {magicLinkSentToEmail}
+              </p>
+              {/* Styled warning message */}
+              <div className="bg-[#8b5e3c]/30 border border-[#a87b5d]/50 p-3 rounded-md flex items-start space-x-2">
+                <MailWarning className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-yellow-300 leading-relaxed">
+                  <span className="font-semibold">Important:</span> Please open the email and click the link on <span className="underline font-medium">this exact same device and browser</span>. Using a different one won't work.
+                </p>
+              </div>
             </div>
-            <DialogFooter className="mt-6 sm:justify-center">
-              <Button 
-                type="button" 
-                onClick={() => setIsMobileDisclaimerOpen(false)}
-                className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow text-sm"
-              >
-                Got it!
-              </Button>
+            <DialogFooter className="mt-6">
+               <DialogClose asChild>
+                 {/* Styled button */}
+                 <Button 
+                   type="button" 
+                   className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow text-sm"
+                  >
+                   OK
+                 </Button>
+               </DialogClose>
             </DialogFooter>
           </DialogContent>
         </Dialog>
