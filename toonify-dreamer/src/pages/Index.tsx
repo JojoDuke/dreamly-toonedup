@@ -264,13 +264,15 @@ const Index = () => {
       return;
     }
 
-    // Reset timer before starting processing
+    // --- Timer Reset Logic (Explicitly reset before processing starts) ---
+    console.log("[Process Image] Starting transformation, resetting timer.");
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
-    startTimeRef.current = null; // Reset start time
-    setProcessingTimeMs(0); // Reset the displayed time
+    startTimeRef.current = null; // Reset start time reference
+    setProcessingTimeMs(0); // Reset the displayed timer value
+    // --- End Timer Reset Logic ---
     
     setIsProcessing(true);
     setProcessedImageUrl(null);
@@ -314,13 +316,15 @@ const Index = () => {
         return;
     }
     
-    // Reset Timer Before Starting Edit
+    // --- Timer Reset Logic (Explicitly reset before editing starts) ---
+    console.log("[Edit Image] Starting edit, resetting timer.");
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
     startTimeRef.current = null; // Clear start time ref
     setProcessingTimeMs(0); // Reset displayed time
+    // --- End Timer Reset Logic ---
     
     setIsEditing(true); // Now set editing state
     
@@ -370,7 +374,8 @@ const Index = () => {
         return;
     }
     
-    // Timer will be reset within processImage function
+    // Call processImage. The timer reset logic is now handled explicitly *inside* processImage.
+    console.log("[Transform Click] Triggering image processing...");
     processImage(stylePrompts[selectedStyle]); 
   };
   
