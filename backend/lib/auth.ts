@@ -39,9 +39,35 @@ export const auth = betterAuth({
     database: authDbPool,
     emailAndPassword: { 
         enabled: true, 
-        // Remove or set to false to disable implicit verification/requirement
-        // requireEmailVerification: true, 
+        requireEmailVerification: true, // Require verification before login
         
+        // --- Add sendVerificationEmail --- 
+        sendVerificationEmail: async (
+            { user, url, token }: { user: User; url: string; token: string },
+            request: any
+        ) => {
+          console.log(`[Auth] Sending verification email to ${user.email}`);
+          try {
+            await resend.emails.send({
+              from: 'Toonly AI <hey@usemidas.app>',
+              to: user.email,
+              subject: 'Verify Your Email for Toonly AI',
+              // Simple text email for now, can be styled like magic link later
+              html: `
+                <p>Welcome to Toonly AI!</p>
+                <p>Please click the link below to verify your email address:</p>
+                <p><a href="${url}">Verify Email</a></p>
+                <p>If you didn't sign up for Toonly AI, you can ignore this email.</p>
+                <p>Link: ${url}</p> // Show link for copy/paste
+              `,
+            });
+            console.log(`[Auth] Verification email sent successfully to ${user.email}`);
+          } catch (error) {
+            console.error(`[Auth] Failed to send verification email to ${user.email}:`, error);
+            // Handle error appropriately, maybe throw?
+          }
+        },
+
         // --- Add sendResetPassword --- 
         sendResetPassword: async (
             { user, url, token }: { user: User; url: string; token: string },

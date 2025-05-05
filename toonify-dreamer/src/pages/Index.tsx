@@ -184,17 +184,17 @@ const Index = () => {
         });
 
     } else {
-        // If not authenticated, but session isn't loading anymore, clear state
+        // Explicitly set to 0 if not authenticated or session still loading
+        prevCreditsRef.current = credits; // Update prev ref before setting to 0
+        setCredits(0);
+        setIsSubscribed(false);
+        setIsLoadingCredits(false);
+        setIsLoadingSubscriptionStatus(false);
+        // Log only if session loading is finished to avoid premature clearing message
         if (!isSessionLoading) {
-            console.log("[Frontend Index] Not authenticated or session load finished, clearing credits and status.");
-            prevCreditsRef.current = credits;
-            setCredits(0);
-            setIsSubscribed(false);
-            setIsLoadingCredits(false);
-            setIsLoadingSubscriptionStatus(false);
+            console.log("[Frontend Index] Not authenticated or session load finished, explicitly setting credits=0.");
         }
     }
-    // Depend on isAuthenticated and isSessionLoading to trigger correctly
   }, [isAuthenticated, isSessionLoading]); 
 
   // Update previous credits ref after successful transform fetch
@@ -409,19 +409,12 @@ const Index = () => {
         email,
         password,
         name,
+        callbackURL: "https://toonlyai.com",
       });
       if (error) { throw error; }
 
       // --- Restore manual verification email trigger --- 
-      try {
-        console.log(`[Frontend Index] Signup successful, attempting to send verification email to ${email}...`);
-        // Ensure callbackURL is set to your desired frontend domain
-        await authClient.sendVerificationEmail({ email, callbackURL: "https://toonlyai.com" }); 
-        console.log(`[Frontend Index] Verification email request sent for ${email}.`);
-      } catch (verificationError: any) {
-         console.error("[Frontend Index] Failed to trigger verification email after signup:", verificationError);
-         toast.warning("Signup successful, but failed to automatically send verification email. You may need to request it manually via Sign In.");
-      }
+      
       // --- End restore --- 
 
       toast.success("Sign up successful! Please check your email to verify your account before signing in.");
@@ -647,13 +640,66 @@ const Index = () => {
           </div>
           
             <div className="hidden md:flex items-center justify-end gap-2 sm:gap-4 flex-grow">
+            
+            {/* Conditional: Sign In Button OR User Dropdown (First) */}
+            {!isSessionLoading && (
+              isAuthenticated ? (
+                <> { /* User Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                       <Button 
+                         variant="ghost" 
+                         className="relative h-10 w-10 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus:ring-0"
+                       >
+                         <Avatar className="h-10 w-10 border-2 border-white/50">
+                           <AvatarFallback className="bg-white/30 text-white">
+                             {userEmail ? userEmail[0].toUpperCase() : <UserIcon size={20} />} 
+                           </AvatarFallback>
+                         </Avatar>
+                       </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 bg-[#3a2e23] border-[#5D4037] text-[#e9e2d6]" align="end" forceMount>
+                       <DropdownMenuLabel className="font-normal">
+                         <div className="flex flex-col space-y-1">
+                           <p className="text-xs leading-none text-[#e9e2d6]/80">
+                             {userEmail || "Loading..."}
+                           </p>
+                         </div>
+                       </DropdownMenuLabel>
+                       <DropdownMenuSeparator className="bg-[#5D4037]/50" />
+                       <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer focus:bg-[#5D4037]/50">
+                         <LogOut className="mr-2 h-4 w-4" />
+                         <span>Log out</span>
+                       </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              ) : (
+                <> { /* Sign In Button */}
+                   <Button 
+                     onClick={triggerAuthModal} 
+                     variant="secondary"
+                     className="bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow h-8 px-4 text-sm font-semibold"
+                   >
+                     Sign In
+                   </Button>
+                </>
+              )
+            )}
+            {/* Optional: Loader only for session loading */}
+            {isSessionLoading && (
+               <Loader2 className="h-5 w-5 text-white animate-spin" />
+            )}
+
+            {/* Buy Stars Button (Second) */}
             <button 
-                  onClick={() => setIsPricingModalOpen(true)}
-              className="bg-white/30 backdrop-blur-sm h-8 px-2 rounded-lg flex items-center text-white font-bold cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-white/40 hover:shadow-md active:scale-95"
+                onClick={() => setIsPricingModalOpen(true)}
+                className="bg-white/30 backdrop-blur-sm h-8 px-2 rounded-lg flex items-center text-white font-bold cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-white/40 hover:shadow-md active:scale-95"
             >
                 <span className="whitespace-nowrap">Buy Stars</span>
             </button>
-            
+
+            {/* Credits Display (Last / Always Visible) */}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -665,18 +711,18 @@ const Index = () => {
                       alt="Credit Icon" 
                       className="h-4 w-4 mr-1"
                     />
-                        <span className="flex items-center min-w-[20px] justify-center">
-                          {isLoadingCredits ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <CountUp 
-                              start={prevCreditsRef.current} 
-                              end={credits} 
-                              duration={1.5}
-                              separator="," 
-                              decimals={0} 
-                            />
-                          )}
+                    <span className="flex items-center min-w-[20px] justify-center">
+                       {(isLoadingCredits && isAuthenticated) ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CountUp 
+                          start={prevCreditsRef.current} 
+                          end={credits} 
+                          duration={1.5}
+                          separator="," 
+                          decimals={0} 
+                        />
+                      )}
                     </span>
                   </div>
                 </TooltipTrigger>
@@ -691,93 +737,72 @@ const Index = () => {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-
-              {isAuthenticated ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      className="relative h-10 w-10 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus:ring-0"
-                    >
-                      <Avatar className="h-10 w-10 border-2 border-white/50">
-                        <AvatarFallback className="bg-white/30 text-white">
-                          {userEmail ? userEmail[0].toUpperCase() : <UserIcon size={20} />}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 bg-[#3a2e23] border-[#5D4037] text-[#e9e2d6]" align="end" forceMount>
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-xs leading-none text-[#e9e2d6]/80">
-                          {userEmail || "Loading..."}
-                        </p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-[#5D4037]/50" />
-                    <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer focus:bg-[#5D4037]/50">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : null} 
+            
             </div>
 
             <div className="md:hidden">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
-                    <Menu className="h-6 w-6" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
+                  {/* ... Menu icon ... */} 
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-[#a87b5d] border-l-[#8b5e3c] p-6 text-white">
-                  <SheetHeader className="mb-6">
-                    <SheetTitle className="text-2xl font-bold text-white text-left">Menu</SheetTitle>
-                  </SheetHeader>
-                  <div className="flex flex-col space-y-4">
-                    {isAuthenticated ? (
-                      <div className="flex items-center gap-3 border-b border-white/20 pb-4 mb-4">
-                        <Avatar className="h-10 w-10 border-2 border-white/50">
-                           <AvatarFallback className="bg-white/30 text-white text-sm">
-                             {userEmail ? userEmail[0].toUpperCase() : <UserIcon size={20} />} 
-                           </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm font-medium truncate">{userEmail}</span>
-                      </div>
-                    ) : null }
-
-                    <SheetClose asChild> 
-                      <Button 
-                        onClick={() => setIsPricingModalOpen(true)}
-                        variant="secondary"
-                        className="w-full justify-start gap-2 text-white bg-[#e9e2d6]/20 hover:bg-[#e9e2d6]/30"
-                      >
-                         <Star className="h-4 w-4 text-yellow-400"/> Buy Stars
-                      </Button>
-                    </SheetClose>
-                    
-                    <div className="flex items-center justify-between text-sm px-3 py-2 rounded-md bg-white/10">
+                <SheetContent /* ... */>
+                   {/* ... Sheet Header ... */} 
+                   <div className="flex flex-col space-y-4">
+                      {/* Always show Buy Stars */} 
+                      <SheetClose asChild> 
+                       <Button 
+                         onClick={() => setIsPricingModalOpen(true)}
+                         variant="secondary"
+                         className="w-full justify-start gap-2 text-white bg-[#e9e2d6]/20 hover:bg-[#e9e2d6]/30"
+                       >
+                          <Star className="h-4 w-4 text-yellow-400"/> Buy Stars
+                       </Button>
+                     </SheetClose>
+                     
+                     {/* Always show Credits */} 
+                     <div className="flex items-center justify-between text-sm px-3 py-2 rounded-md bg-white/10">
                        <span className="flex items-center gap-2">
-                         <Star className="h-4 w-4 text-yellow-400"/> Credits Remaining:
+                         <Star className="h-4 w-4 text-yellow-400"/> Stars: 
                        </span>
                        <span className="font-semibold flex items-center min-w-[20px] justify-center">
-                         {isLoadingCredits ? <Loader2 className="h-4 w-4 animate-spin" /> : <CountUp start={prevCreditsRef.current} end={credits} duration={1.5} separator="," decimals={0} />}
+                         {(isLoadingCredits && isAuthenticated) ? <Loader2 className="h-4 w-4 animate-spin" /> : <CountUp start={prevCreditsRef.current} end={credits} duration={1.5} separator="," decimals={0} />} 
                        </span>
                      </div>
 
-                    {isAuthenticated ? (
-                      <SheetClose asChild>
-                        <Button 
-                          onClick={handleSignOut}
-                          variant="ghost"
-                          className="w-full justify-start gap-2 hover:bg-white/10 text-white"
-                          >
-                           <LogOut className="h-4 w-4"/> Sign Out
-                        </Button>
-                       </SheetClose>
-                    ) : null}
+                    {/* Conditional: User Info/Logout OR Sign In Button */} 
+                    {isSessionLoading ? (
+                       <div className="flex justify-center items-center py-4">
+                         <Loader2 className="h-6 w-6 text-white animate-spin" />
+                       </div>
+                    ) : isAuthenticated ? (
+                      <> { /* Mobile Authenticated View */}
+                         <div className="flex items-center gap-3 border-t border-white/20 pt-4 mt-4">
+                             {/* ... Avatar and Email ... */} 
+                         </div>
+                         {/* ... Sign Out Button (SheetClose) ... */} 
+                          <SheetClose asChild>
+                           <Button 
+                             onClick={handleSignOut}
+                             variant="ghost"
+                             className="w-full justify-start gap-2 hover:bg-white/10 text-white"
+                             >
+                              <LogOut className="h-4 w-4"/> Sign Out
+                           </Button>
+                          </SheetClose>
+                      </>
+                    ) : (
+                      <> { /* Mobile Unauthenticated View */}
+                         <SheetClose asChild>
+                           <Button 
+                             onClick={triggerAuthModal}
+                             variant="secondary"
+                             className="w-full justify-center gap-2 text-white bg-[#8b5e3c] hover:bg-[#6d4c30] playful-shadow text-base py-3"
+                             > 
+                               <UserIcon className="h-5 w-5"/> Sign In / Sign Up
+                           </Button>
+                         </SheetClose>
+                      </>
+                    )}
                   </div>
                 </SheetContent>
               </Sheet>
