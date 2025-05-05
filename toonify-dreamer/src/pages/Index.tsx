@@ -42,9 +42,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose 
 
 // Use Vite's import.meta.env for frontend environment variables
 // Use the VITE_ prefixed variable name
-const BACKEND_BASE_URL = import.meta.env.VITE_BETTER_AUTH_URL || ''; // Provide a default
-const WIZARD_IMAGE_URL = "https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png"; // Add wizard image URL
-const GALAXY_IMAGE_URL = "/images/theGalazy.png"; // Add galaxy image URL
+const BACKEND_BASE_URL = import.meta.env.VITE_BETTER_AUTH_URL;
+const WIZARD_IMAGE_URL = "https://i.imgur.com/B7ptMnm.png";
+const GALAXY_IMAGE_URL = "/images/theGalazy.png";
 
 const stylePrompts: Record<string, string> = {
   ghibli: "Turn this image into Ghibli anime style",
@@ -630,7 +630,7 @@ const Index = () => {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
             <div className="flex items-center gap-2 flex-shrink-0 mr-2">
             <img 
-              src="https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png" 
+              src={WIZARD_IMAGE_URL} 
                   alt="ToonlyAI Wizard Logo" 
               className="h-12 w-12 object-contain"
               onError={(e) => {

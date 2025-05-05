@@ -6,7 +6,6 @@ import type { User } from "better-auth";
 
 // Use the public URL directly
 const theWizardUrl = "https://i.imgur.com/B7ptMnm.png";
-const wizardPublicUrl = "https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png"; // Use the correct URL
 
 //https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png
 
@@ -69,7 +68,7 @@ export const auth = betterAuth({
                                           <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                                               <tr>
                                                   <td valign="middle" style="padding-right: 15px;">
-                                                      <img src="${wizardPublicUrl}" alt="Toonly AI Wizard" width="70" style="display: block; border: 0;">
+                                                      <img src="${theWizardUrl}" alt="Toonly AI Wizard" width="70" style="display: block; border: 0;">
                                                   </td>
                                                   <td valign="middle">
                                                       <h1 style="margin: 0; color: #f9f4e3; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; font-family: 'Sentient', serif;">Toonly AI</h1>
@@ -156,7 +155,7 @@ export const auth = betterAuth({
                                           <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                                               <tr>
                                                   <td valign="middle" style="padding-right: 15px;">
-                                                      <img src="${wizardPublicUrl}" alt="Toonly AI Wizard" width="70" style="display: block; border: 0;">
+                                                      <img src="${theWizardUrl}" alt="Toonly AI Wizard" width="70" style="display: block; border: 0;">
                                                   </td>
                                                   <td valign="middle">
                                                       <h1 style="margin: 0; color: #f9f4e3; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; font-family: 'Sentient', serif;">Toonly AI</h1>
