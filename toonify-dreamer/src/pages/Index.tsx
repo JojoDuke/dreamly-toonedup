@@ -43,6 +43,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose 
 // Use Vite's import.meta.env for frontend environment variables
 // Use the VITE_ prefixed variable name
 const BACKEND_BASE_URL = import.meta.env.VITE_BETTER_AUTH_URL || ''; // Provide a default
+const WIZARD_IMAGE_URL = "https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png"; // Add wizard image URL
+const GALAXY_IMAGE_URL = "/images/theGalazy.png"; // Add galaxy image URL
 
 const stylePrompts: Record<string, string> = {
   ghibli: "Turn this image into Ghibli anime style",
@@ -1155,148 +1157,179 @@ const Index = () => {
     </main>
     
     <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
-        <DialogContent className="sm:max-w-md bg-[#3a2e23] border-[#5D4037] p-6 rounded-lg text-[#e9e2d6]">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="text-2xl font-bold text-center text-white">
-              {authMode === 'signIn' && 'Sign In to Toonly AI'}
-              {authMode === 'signUp' && 'Create Your Toonly AI Account'}
-              {authMode === 'forgotPassword' && 'Reset Your Password'}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {/* Email Input (Common) */}
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
-                    <Input 
-                      type="email" 
-                id="email-auth" 
-                      placeholder="you@example.com" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                disabled={isAuthLoading}
-                required
-                className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
-                    />
-                  </div>
-
-            {/* Password Input (Sign In / Sign Up) */}
-            {authMode !== 'forgotPassword' && (
-              <div className="relative">
-                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
-                    <Input 
-                      type="password" 
-                  id="password-auth" 
-                      placeholder="Password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isAuthLoading}
-                  required
-                  className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
-                    />
-                  </div>
-            )}
-
-            {/* Confirm Password Input (Sign Up Only) */}
-            {authMode === 'signUp' && (
-               <div className="relative">
-                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
-                 <Input 
-                  type="password" 
-                  id="confirm-password-auth" 
-                  placeholder="Confirm Password" 
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={isAuthLoading}
-                  required
-                  className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
-                />
-                </div>
-            )}
+        <DialogContent className="sm:max-w-2xl bg-[#3a2e23] border-[#5D4037] p-0 rounded-lg text-[#e9e2d6] overflow-hidden">
+          <div className="flex"> 
+             {/* Left Column: Galaxy Image (hidden on small screens) */}
+             <div className="hidden md:block md:w-1/3">
+                <img 
+                   src={GALAXY_IMAGE_URL} 
+                   alt="Abstract background" 
+                   className="h-full w-full object-cover"
+                 />
+             </div>
             
-            {/* Name Input (Sign Up Only) */}
-            {authMode === 'signUp' && (
-               <div className="relative">
-                 <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
-                 <Input 
-                  type="text" 
-                  id="name-auth" 
-                  placeholder="Your Name" 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={isAuthLoading}
-                  required
-                  className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
-                />
-              </div>
-            )}
-            
-            {/* Verification Needed Message & Resend Button */}    
-            {showVerificationNeeded && (
-              <div className="bg-yellow-900/30 border border-yellow-700 text-yellow-300 text-xs p-3 rounded-md text-center space-y-2">
-                <p>Please check your inbox (and spam folder) for the verification email.</p>
-                <Button
-                  variant="link"
-                  size="sm"
-                  onClick={handleResendVerification}
-                  disabled={isAuthLoading}
-                  className="text-yellow-200 hover:text-yellow-100 h-auto p-0 disabled:opacity-50"
-                >
-                   {isAuthLoading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Send className="mr-1 h-3 w-3" />} Resend Verification Email
-                </Button>
-              </div>
-            )}
-
-          </div>
-
-          <DialogFooter className="mt-6 flex flex-col gap-3">
-            {/* Action Buttons */}
-            {authMode === 'signIn' && (
-              <Button 
-                onClick={handleSignIn} 
-                disabled={isAuthLoading || !email || !password}
-                className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
-              >
-                {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserIcon className="mr-2 h-4 w-4" />} Sign In
-              </Button>
-            )}
-            {authMode === 'signUp' && (
-              <Button 
-                onClick={handleSignUp} 
-                disabled={isAuthLoading || !email || !password || !confirmPassword || !name}
-                className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
-              >
-                 {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />} Sign Up
-              </Button>
-            )}
-            {authMode === 'forgotPassword' && (
-              <Button 
-                onClick={handleForgotPassword} 
-                disabled={isAuthLoading || !email}
-                className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
-              >
-                 {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />} Send Reset Link
-              </Button>
-            )}
-
-            {/* Toggle Links */}
-            <div className="text-center text-xs mt-2">
-              {authMode === 'signIn' && (
-                <>
-                  <Button variant="link" className="text-[#e9e2d6]/70 hover:text-white h-auto p-0" onClick={() => setAuthMode('signUp')}>Don't have an account? Sign Up</Button>
-                  <span className="mx-2 text-[#e9e2d6]/40">|</span>
-                  <Button variant="link" className="text-[#e9e2d6]/70 hover:text-white h-auto p-0" onClick={() => setAuthMode('forgotPassword')}>Forgot Password?</Button>
-                </>
-              )}
-              {authMode === 'signUp' && (
-                <Button variant="link" className="text-[#e9e2d6]/70 hover:text-white h-auto p-0" onClick={() => setAuthMode('signIn')}>Already have an account? Sign In</Button>
-              )}
-              {authMode === 'forgotPassword' && (
-                <Button variant="link" className="text-[#e9e2d6]/70 hover:text-white h-auto p-0" onClick={() => setAuthMode('signIn')}>Back to Sign In</Button>
-              )}
+             {/* Right Column: Form Content */}
+             <div className="w-full md:w-2/3 p-6 flex flex-col justify-center">
+                <DialogHeader className="mb-4 text-center">
+                  {/* Wizard Image remains in the right column */}
+                  <img 
+                    src={WIZARD_IMAGE_URL} 
+                    alt="Toonly AI Wizard" 
+                    className="h-16 w-16 mx-auto mb-3" 
+                  />
+                  <DialogTitle className="text-2xl font-bold text-white">
+                    {authMode === 'signIn' && 'Sign In to Toonly AI'}
+                    {authMode === 'signUp' && 'Create Your Toonly AI Account'}
+                    {authMode === 'forgotPassword' && 'Reset Your Password'}
+                  </DialogTitle>
+                  <DialogDescription className="text-[#e9e2d6]/80 text-sm mt-1">
+                    {authMode === 'signIn' ? 'Welcome back! Enter your details to access your account.' :
+                     authMode === 'signUp' ? 'Join Toonly AI! Create an account to start transforming your images.' :
+                     authMode === 'forgotPassword' ? 'Enter your email, and we\'ll send you a link to reset your password.' : null}
+                  </DialogDescription>
+                </DialogHeader>
+      
+                <div className="space-y-4">
+                   {/* Form Inputs remain here */}
+                   {/* Email Input (Common) */}
+                   <div className="relative">
+                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
+                     <Input 
+                       type="email" 
+                       id="email-auth" 
+                       placeholder="you@example.com" 
+                       value={email}
+                       onChange={(e) => setEmail(e.target.value)}
+                       disabled={isAuthLoading}
+                       required
+                       className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
+                     />
+                   </div>
+         
+                   {/* Password Input (Sign In / Sign Up) */}
+                   {authMode !== 'forgotPassword' && (
+                     <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
+                           <Input 
+                             type="password" 
+                             id="password-auth" 
+                             placeholder="Password" 
+                             value={password}
+                             onChange={(e) => setPassword(e.target.value)}
+                             disabled={isAuthLoading}
+                             required
+                             className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
+                           />
+                         </div>
+                   )}
+         
+                   {/* Confirm Password Input (Sign Up Only) */}
+                   {authMode === 'signUp' && (
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
+                        <Input 
+                         type="password" 
+                         id="confirm-password-auth" 
+                         placeholder="Confirm Password" 
+                         value={confirmPassword}
+                         onChange={(e) => setConfirmPassword(e.target.value)}
+                         disabled={isAuthLoading}
+                         required
+                         className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
+                       />
+                       </div>
+                   )}
+                   
+                   {/* Name Input (Sign Up Only) */}
+                   {authMode === 'signUp' && (
+                      <div className="relative">
+                        <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
+                        <Input 
+                         type="text" 
+                         id="name-auth" 
+                         placeholder="Your Name" 
+                         value={name}
+                         onChange={(e) => setName(e.target.value)}
+                         disabled={isAuthLoading}
+                         required
+                         className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
+                       />
+                     </div>
+                   )}
+                   
+                   {/* Verification Needed Message & Resend Button */}
+                   {showVerificationNeeded && (
+                     <div className="bg-yellow-900/30 border border-yellow-700 text-yellow-300 text-xs p-3 rounded-md text-center space-y-2">
+                       <p>Please check your inbox (and spam folder) for the verification email.</p>
+                       <Button
+                         variant="link"
+                         size="sm"
+                         onClick={handleResendVerification}
+                         disabled={isAuthLoading}
+                         className="text-yellow-200 hover:text-yellow-100 h-auto p-0 disabled:opacity-50"
+                       >
+                          {isAuthLoading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Send className="mr-1 h-3 w-3" />} Resend Verification Email
+                       </Button>
+                     </div>
+                   )}
+                 </div>
+       
+                 {/* Use a standard div instead of DialogFooter */}
+                 <div className="mt-6 flex flex-col w-full gap-3"> 
+                   {/* Button Wrapper - Keep w-full */}
+                   <div className="w-full"> 
+                     {/* ... Sign In Button ... */}
+                     {authMode === 'signIn' && (
+                       <Button 
+                         onClick={handleSignIn} 
+                         disabled={isAuthLoading || !email || !password}
+                         className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
+                       >
+                         {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserIcon className="mr-2 h-4 w-4" />} Sign In
+                       </Button>
+                     )}
+                     {/* ... Sign Up Button ... */}
+                     {authMode === 'signUp' && (
+                       <Button 
+                         onClick={handleSignUp} 
+                         disabled={isAuthLoading || !email || !password || !confirmPassword || !name}
+                         className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
+                       >
+                          {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />} Sign Up
+                       </Button>
+                     )}
+                     {/* ... Forgot Password Button ... */}
+                     {authMode === 'forgotPassword' && (
+                       <Button 
+                         onClick={handleForgotPassword} 
+                         disabled={isAuthLoading || !email}
+                         className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
+                       >
+                          {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />} Send Reset Link
+                       </Button>
+                     )}
+                   </div>
+                   
+                   {/* Links Wrapper - Keep w-full and text-[11px] */}
+                   <div className="text-center text-[11px] mt-2 w-full"> 
+                     {authMode === 'signIn' && (
+                       <>
+                         <Button variant="link" className="text-[#e9e2d6]/70 hover:text-white h-auto p-0" onClick={() => setAuthMode('signUp')}>Don't have an account? Sign Up</Button>
+                         <span className="mx-2 text-[#e9e2d6]/40">|</span>
+                         <Button variant="link" className="text-[#e9e2d6]/70 hover:text-white h-auto p-0" onClick={() => setAuthMode('forgotPassword')}>Forgot Password?</Button>
+                       </>
+                     )}
+                     {authMode === 'signUp' && (
+                       <Button variant="link" className="text-[#e9e2d6]/70 hover:text-white h-auto p-0" onClick={() => setAuthMode('signIn')}>Already have an account? Sign In</Button>
+                     )}
+                     {authMode === 'forgotPassword' && (
+                       <Button variant="link" className="text-[#e9e2d6]/70 hover:text-white h-auto p-0" onClick={() => setAuthMode('signIn')}>Back to Sign In</Button>
+                     )}
+                   </div>
+                 </div> { /* End of standard div replacing DialogFooter */}
+             </div>
             </div>
-            </DialogFooter>
-      </DialogContent>
+        </DialogContent>
     </Dialog>
         
         <PricingModal 
