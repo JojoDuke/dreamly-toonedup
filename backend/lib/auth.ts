@@ -49,8 +49,7 @@ export const auth = betterAuth({
             request: any
         ) => {
           console.log(`[Auth] Sending password reset email to ${user.email}`);
-          // The URL provided by better-auth here likely already contains the token
-          // and points to the frontend page specified in the client-side `forgetPassword` call.
+          
           try {
              await resend.emails.send({
               from: 'Toonly AI <hey@toonlyai.com>',
