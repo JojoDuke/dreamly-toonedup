@@ -53,7 +53,7 @@ export const auth = betterAuth({
           // and points to the frontend page specified in the client-side `forgetPassword` call.
           try {
              await resend.emails.send({
-              from: 'Toonly AI <hey@usemidas.app>',
+              from: 'Toonly AI <hey@toonlyai.com>',
               to: user.email,
               subject: 'Reset Your Toonly AI Password',
               // Use the provided template, adjusted for Password Reset
