@@ -49,7 +49,7 @@ export const auth = betterAuth({
             request: any
         ) => {
           console.log(`[Auth] Sending password reset email to ${user.email}`);
-          
+
           try {
              await resend.emails.send({
               from: 'Toonly AI <hey@toonlyai.com>',
@@ -139,10 +139,9 @@ export const auth = betterAuth({
         console.log(`[Auth] Sending verification email to ${user.email}`);
         try {
           await resend.emails.send({
-            from: 'Toonly AI <hey@usemidas.app>',
+            from: 'Toonly AI <hey@toonlyai.com>',
             to: user.email,
             subject: 'Verify Your Email for Toonly AI',
-            // Use the provided template, adjusted for Verification
             html: `<body style="margin: 0; padding: 0; background-color: transparent; font-family: 'Sentient', serif; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
                   <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed;">
                       <tr>
