@@ -609,7 +609,7 @@ const Index = () => {
       <div className="flex items-center justify-center min-h-screen bg-[#a87b5d] text-white p-4 text-center">
         <div className="max-w-md">
           <img 
-            src="https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png" 
+            src={WIZARD_IMAGE_URL}
             alt="ToonlyAI Wizard Logo" 
             className="h-24 w-24 object-contain mx-auto mb-6"
           />
