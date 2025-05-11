@@ -340,7 +340,7 @@ async function handleEditImageLogic(req: Request, res: Response): Promise<void> 
     console.error(`[Edit Image Handler] Error processing image for user ${userId}:`, error);
     const errorMessage = error.response?.data?.error?.message || error.message || "Unknown error occurred";
     const errorStatus = error.response?.status || 500;
-    res.status(errorStatus).json({ error: 'Failed to edit image due to an API error.', details: errorMessage });
+    res.status(errorStatus).json({ error: 'Failed to edit image, image format should only be PNG, JPG or WEBP.', details: errorMessage });
   } finally {
     // Ensure database client is always released
     if (dbClient) {
