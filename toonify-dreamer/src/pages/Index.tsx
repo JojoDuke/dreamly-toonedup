@@ -49,7 +49,7 @@ const GALAXY_IMAGE_URL = "/images/theGalazy.png";
 const stylePrompts: Record<string, string> = {
   ghibli: "Turn this image into Ghibli anime style",
   pixel: "Do this in a 16 bit pixel art style",
-  cartoon: "Turn this image into a 3D cartoon style",
+  sketch: "Make this look like its a hand drawn pencil sketch art",
 };
 
 const Index = () => {
