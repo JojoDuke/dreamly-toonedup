@@ -36,10 +36,10 @@ const client = new OpenAI({ apiKey: openaiApiKey });
 
 // Define trusted origins
 const trustedOrigins = [
-  'http://localhost:8080', // Local dev frontend
-  'https://toonlyai.com', // Production frontend (non-www)
-  'https://www.toonlyai.com' // Production frontend (www)
-].filter(Boolean); // Filter out any potential undefined/empty values
+  'http://localhost:8080',
+  'https://toonlyai.com',
+  'https://www.toonlyai.com'
+].filter(Boolean);
 
 // !! IMPORTANT: Apply CORS *before* route handlers that need it !!
 const corsOptions: cors.CorsOptions = {
