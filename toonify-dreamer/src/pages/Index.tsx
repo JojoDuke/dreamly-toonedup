@@ -47,9 +47,22 @@ const WIZARD_IMAGE_URL = "https://i.imgur.com/B7ptMnm.png";
 const GALAXY_IMAGE_URL = "/images/theGalazy.png";
 
 const stylePrompts: Record<string, string> = {
+  // Anime
   ghibli: "Turn this image into Ghibli anime style",
+  // Art
   pixel: "Do this in a 16 bit pixel art style",
   sketch: "Make this look like its a hand drawn pencil sketch art",
+  // Cartoons
+  simpsons: `Turn this into the Simpsons style, now remember, 
+  in the Simpsons universe, white people have yellow skin, 
+  asians have light yellow skin, blacks have black skin, 
+  indians have brown skin and mexicans/hispanics also have yellow skin. 
+  And make sure not to write any 'Simpsons' or 'The Simpsons' text anywhere`,
+  // Toys
+  lego: `Make this look like its a lego, in the 3D plasticy lego style,
+  now remember, in the Lego universe, white people have yellow skin, 
+  asians have light yellow skin, blacks have black skin, 
+  indians have brown skin and mexicans/hispanics also have yellow skin.`,
 };
 
 const Index = () => {

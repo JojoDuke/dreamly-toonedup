@@ -24,6 +24,7 @@ export type CategoryOption = {
 };
 
 export const CATEGORY_OPTIONS: CategoryOption[] = [
+  // Anime
   {
     id: "anime",
     name: "Anime",
@@ -34,6 +35,18 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
       },
     ],
   },
+  // Cartoons
+  {
+    id: "cartoons",
+    name: "Cartoons",
+    styles: [
+      {
+        id: "simpsons",
+        name: "The Simpsons",
+      },
+    ],
+  },
+  // Art
   {
     id: "art",
     name: "Art",
@@ -46,6 +59,17 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
         id: "sketch",
         name: "Sketch Art",
       }
+    ],
+  },
+  // Toys
+  {
+    id: "toys",
+    name: "Toys",
+    styles: [
+      {
+        id: "lego",
+        name: "Legos",
+      },
     ],
   },
 ];
