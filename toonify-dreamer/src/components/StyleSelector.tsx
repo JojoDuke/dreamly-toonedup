@@ -44,6 +44,18 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
         id: "simpsons",
         name: "The Simpsons",
       },
+      {
+        id: "rickMorty",
+        name: "Rick and Morty",
+      },
+      {
+        id: "familyGuy",
+        name: "Family Guy",
+      },
+      {
+        id: "pixar",
+        name: "Pixar",
+      },
     ],
   },
   // Art
@@ -58,7 +70,22 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
       {
         id: "sketch",
         name: "Sketch Art",
+      },
+      {
+        id: "watercolor",
+        name: "Watercolor"
       }
+    ],
+  },
+  // Others
+  {
+    id: "other",
+    name: "Other",
+    styles: [
+      {
+        id: "thinker",
+        name: "The Thinker",
+      },
     ],
   },
   // Toys
@@ -69,6 +96,17 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
       {
         id: "lego",
         name: "Legos",
+      },
+    ],
+  },
+  // Fashion Model
+  {
+    id: "fashionModel",
+    name: "Fashion Model",
+    styles: [
+      {
+        id: "model",
+        name: "Model",
       },
     ],
   },
@@ -116,15 +154,17 @@ export function StyleSelector({
             <SelectValue placeholder="Select Category" />
           </SelectTrigger>
           <SelectContent className="bg-[#f4efe4] border-[#a87b5d]">
-            {CATEGORY_OPTIONS.map((category) => (
-              <SelectItem 
-                key={category.id} 
-                value={category.id} 
-                className="text-[#5D4037] focus:bg-[#a87b5d]/40 hover:bg-[#a87b5d]/20 cursor-pointer whitespace-normal"
-              >
-                {category.name}
-              </SelectItem>
-            ))}
+            <div className="max-h-[150px] overflow-y-auto custom-scrollbar p-1">
+              {CATEGORY_OPTIONS.map((category) => (
+                <SelectItem 
+                  key={category.id} 
+                  value={category.id} 
+                  className="text-[#5D4037] focus:bg-[#a87b5d]/40 hover:bg-[#a87b5d]/20 cursor-pointer whitespace-normal"
+                >
+                  {category.name}
+                </SelectItem>
+              ))}
+            </div>
           </SelectContent>
         </Select>
       </div>

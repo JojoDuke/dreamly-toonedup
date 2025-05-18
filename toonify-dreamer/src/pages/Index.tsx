@@ -52,17 +52,31 @@ const stylePrompts: Record<string, string> = {
   // Art
   pixel: "Do this in a 16 bit pixel art style",
   sketch: "Make this look like its a hand drawn pencil sketch art",
+  watercolor: "Make this look like its a watercolor painting",
   // Cartoons
   simpsons: `Turn this into the Simpsons style, now remember, 
   in the Simpsons universe, white people have yellow skin, 
   asians have light yellow skin, blacks have black skin, 
   indians have brown skin and mexicans/hispanics also have yellow skin. 
   And make sure not to write any 'Simpsons' or 'The Simpsons' text anywhere`,
+  rickMorty: "Turn this into the Rick and Morty style",
+  familyGuy: "Turn this into the Family Guy style",
+  pixar: "Make this in the pixar 3d style, make sure to make the look and proportions cartoony and not too realistic",
   // Toys
   lego: `Make this look like its a lego, in the 3D plasticy lego style,
   now remember, in the Lego universe, white people have yellow skin, 
   asians have light yellow skin, blacks have black skin, 
   indians have brown skin and mexicans/hispanics also have yellow skin.`,
+  // Other
+  thinker: `Make a photorealistic image of the statue The Thinker in its iconic pose but instead
+   make the face this face that you see here, make sure to put it in an angle that allows us
+  to see the face well`,
+  // Fashion Model
+  model: `Take this face and make a photorealistic image where they are a model posing for a clothing brand,
+    the background is clear white background with realistic shadows and lighting and it should be a full
+    body pose seeing them from head to toe, the clothes they wear should be what you see in the image provided,
+    if the image provided doesn't show all their clothes then the parts that arent shown you can just generate
+    what you think would best suit or be there.`,
 };
 
 const Index = () => {
