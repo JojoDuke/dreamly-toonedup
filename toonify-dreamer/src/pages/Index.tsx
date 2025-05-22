@@ -599,6 +599,7 @@ const Index = () => {
   }, [processingTimeMs]); // Use useMemo for efficiency
 
   // --- Conditional Rendering based on Mobile Detection (using isMobileView directly) ---
+  /*
   if (isMobileView) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#a87b5d] text-white p-4 text-center">
@@ -616,6 +617,7 @@ const Index = () => {
       </div>
     );
   }
+  */
 
   // --- Render the main application UI if not mobile --- 
   return (
@@ -625,8 +627,8 @@ const Index = () => {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
             <div className="flex items-center gap-2 flex-shrink-0 mr-2">
             <img 
-              src={WIZARD_IMAGE_URL} 
-                  alt="ToonlyAI Wizard Logo" 
+              src={WIZARD_IMAGE_URL}
+              alt="ToonlyAI Wizard Logo" 
               className="h-12 w-12 object-contain"
               onError={(e) => {
                 console.error("Error loading logo:", e);
@@ -653,7 +655,7 @@ const Index = () => {
                              {userEmail ? userEmail[0].toUpperCase() : <UserIcon size={20} />} 
                            </AvatarFallback>
                          </Avatar>
-                       </Button>
+                  </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56 bg-[#3a2e23] border-[#5D4037] text-[#e9e2d6]" align="end" forceMount>
                        <DropdownMenuLabel className="font-normal">
@@ -679,7 +681,7 @@ const Index = () => {
                      className="bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow h-8 px-4 text-sm font-semibold"
                    >
                      Sign In
-                   </Button>
+                  </Button>
                 </>
               )
             )}
@@ -740,10 +742,22 @@ const Index = () => {
             <div className="md:hidden">
               <Sheet>
                 <SheetTrigger asChild>
-                  {/* ... Menu icon ... */} 
+                  <Button variant="ghost" size="icon" className="text-white">
+                    <Menu className="h-6 w-6" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
                 </SheetTrigger>
-                <SheetContent /* ... */>
-                   {/* ... Sheet Header ... */} 
+                <SheetContent className="bg-[#3a2e23] border-[#5D4037] text-[#e9e2d6] w-[280px] sm:w-[320px]">
+                  <SheetHeader className="mb-6 text-center">
+                    <img 
+                      src={WIZARD_IMAGE_URL} 
+                      alt="Toonly AI Wizard" 
+                      className="h-16 w-16 mx-auto mb-3" 
+                    />
+                    <SheetTitle className="text-xl font-bold text-white">
+                      Menu
+                    </SheetTitle>
+                  </SheetHeader>
                    <div className="flex flex-col space-y-4">
                       {/* Always show Buy Stars */} 
                       <SheetClose asChild> 
@@ -774,14 +788,20 @@ const Index = () => {
                     ) : isAuthenticated ? (
                       <> { /* Mobile Authenticated View */}
                          <div className="flex items-center gap-3 border-t border-white/20 pt-4 mt-4">
-                             {/* ... Avatar and Email ... */} 
+                           <Avatar className="h-10 w-10 border-2 border-white/30">
+                             <AvatarFallback className="bg-white/20 text-white">
+                               {userEmail ? userEmail[0].toUpperCase() : <UserIcon size={20} />} 
+                             </AvatarFallback>
+                           </Avatar>
+                           <p className="text-sm font-medium text-white truncate">
+                             {userEmail || "User"}
+                           </p>
                          </div>
-                         {/* ... Sign Out Button (SheetClose) ... */} 
                           <SheetClose asChild>
                            <Button 
                              onClick={handleSignOut}
                              variant="ghost"
-                             className="w-full justify-start gap-2 hover:bg-white/10 text-white"
+                             className="w-full justify-start gap-2 hover:bg-white/10 text-white mt-2"
                              >
                               <LogOut className="h-4 w-4"/> Sign Out
                            </Button>
@@ -793,7 +813,7 @@ const Index = () => {
                            <Button 
                              onClick={triggerAuthModal}
                              variant="secondary"
-                             className="w-full justify-center gap-2 text-white bg-[#8b5e3c] hover:bg-[#6d4c30] playful-shadow text-base py-3"
+                             className="w-full justify-center gap-2 text-white bg-[#8b5e3c] hover:bg-[#6d4c30] playful-shadow text-base py-3 mt-4"
                              > 
                                <UserIcon className="h-5 w-5"/> Sign In / Sign Up
                            </Button>
@@ -810,7 +830,7 @@ const Index = () => {
         {/* Add overflow constraint to main content area */}
         <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-x-hidden">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4 text-[#f4efe4] [text-shadow:1px_1px_2px_rgba(93,64,55,0.7)]">Toonly AI</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-[#f4efe4] [text-shadow:1px_1px_2px_rgba(93,64,55,0.7)]">Toonly AI</h2>
             <p className="text-lg text-[#f4efe4]/95 max-w-2xl mx-auto [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)]">
               Effortlessly transform your photos into stunning cartoon styles, pixel art, and more in seconds. 
               Simple upload, instant magic!
@@ -829,15 +849,15 @@ const Index = () => {
                       <Pencil className="h-4 w-4" />
                       Edit Transformation
                     </Label>
-                    <Textarea
+              <Textarea
                       id="custom-prompt"
                       placeholder={processedImageUrl ? "Describe further edits (e.g., 'add glasses', 'change background to forest')..." : "Transform an image first to enable editing."}
-                      value={customPrompt}
-                      onChange={(e) => setCustomPrompt(e.target.value)}
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
                       disabled={!processedImageUrl || isProcessing || isEditing}
                       className="bg-white/80 border-[#a87b5d]/60 text-[#3a2e23] placeholder:text-[#5D4037]/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#8b5e3c] focus-visible:ring-offset-0 min-h-[80px] resize-none disabled:cursor-not-allowed disabled:bg-opacity-60"
-                    />
-                  </div>
+              />
+            </div>
                 )}
                 {/* --- End Edit Transformation Area --- */}
             
@@ -896,26 +916,26 @@ const Index = () => {
                     )}
                   </Button>
                 )}
-              </div>
+          </div>
             
             <div className="md:hidden">
                 {/* Pass combined loading state */}
                 <ImageResult imageUrl={processedImageUrl} isLoading={isProcessing || isEditing} onDownload={downloadImage} formattedProcessingTime={formattedProcessingTime} />
-              </div>
-          </div>
+        </div>
+        </div>
           
           <div className="md:pl-6 flex items-center justify-center h-full">
             <div className="hidden md:block w-full h-full stitch-border rounded-xl overflow-hidden bg-[#f4efe4]">
                 {/* Pass combined loading state */}
                 <ImageResult imageUrl={processedImageUrl} isLoading={isProcessing || isEditing} onDownload={downloadImage} formattedProcessingTime={formattedProcessingTime} />
-              </div>
+      </div>
             </div>
           </div>
         </div>
         
           <section className="py-16 bg-[#f4efe4]/70 backdrop-blur-sm rounded-xl playful-shadow playful-border mb-16 text-[#3a2e23]">
             <div className="container max-w-5xl mx-auto text-center">
-              <h2 className="text-3xl font-bold mb-4 text-[#5D4037]">Create Stunning Art in 3 Simple Steps</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-[#5D4037]">Create Stunning Art in 3 Simple Steps</h2>
               <div className="grid md:grid-cols-3 gap-8 mt-8 text-left">
                 <div className="p-4">
                   <div className="text-4xl font-bold text-[#8b5e3c] mb-2">1.</div>
@@ -978,7 +998,7 @@ const Index = () => {
           <section id="pricing" className="py-16 bg-[#f4efe4]/70 backdrop-blur-sm rounded-xl playful-shadow playful-border mb-16 text-[#3a2e23]">
             <div className="container max-w-4xl mx-auto">
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-[#5D4037] mb-2 flex items-center justify-center gap-2">
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#5D4037] mb-2 flex items-center justify-center gap-2">
                   <StarIcon className="h-7 w-7 text-yellow-400" />
                   Choose Your Plan
                 </h2>
@@ -1114,7 +1134,7 @@ const Index = () => {
           </section>
 
           <section className="py-16 text-center">
-            <h2 className="text-3xl font-bold mb-8 text-[#f4efe4] [text-shadow:1px_1px_2px_rgba(93,64,55,0.7)]">Frequently Asked Questions</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-[#f4efe4] [text-shadow:1px_1px_2px_rgba(93,64,55,0.7)]">Frequently Asked Questions</h2>
             <div className="max-w-3xl mx-auto text-left">
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="item-1" className="border-b border-[#f4efe4]/20">
@@ -1151,7 +1171,7 @@ const Index = () => {
       </footer>
     </main>
     
-    <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
+      <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
         <DialogContent className="sm:max-w-2xl bg-[#3a2e23] border-[#5D4037] p-0 rounded-lg text-[#e9e2d6] overflow-hidden">
           <div className="flex"> 
              {/* Left Column: Galaxy Image (hidden on small screens) */}
@@ -1176,95 +1196,95 @@ const Index = () => {
                     {authMode === 'signIn' && 'Sign In to Toonly AI'}
                     {authMode === 'signUp' && 'Create Your Toonly AI Account'}
                     {authMode === 'forgotPassword' && 'Reset Your Password'}
-                  </DialogTitle>
+            </DialogTitle>
                   <DialogDescription className="text-[#e9e2d6]/80 text-sm mt-1">
                     {authMode === 'signIn' ? 'Welcome back! Enter your details to access your account.' :
                      authMode === 'signUp' ? 'Join Toonly AI! Create an account to start transforming your images.' :
                      authMode === 'forgotPassword' ? 'Enter your email, and we\'ll send you a link to reset your password.' : null}
-                  </DialogDescription>
-                </DialogHeader>
+            </DialogDescription>
+          </DialogHeader>
       
                 <div className="space-y-4">
                    {/* Form Inputs remain here */}
                    {/* Email Input (Common) */}
                    <div className="relative">
                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
-                     <Input 
+              <Input
                        type="email" 
                        id="email-auth" 
                        placeholder="you@example.com" 
-                       value={email}
-                       onChange={(e) => setEmail(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                        disabled={isAuthLoading}
                        required
                        className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
-                     />
-                   </div>
+              />
+            </div>
          
                    {/* Password Input (Sign In / Sign Up) */}
-                   {authMode !== 'forgotPassword' && (
+            {authMode !== 'forgotPassword' && (
                      <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
-                           <Input 
+                <Input
                              type="password" 
                              id="password-auth" 
                              placeholder="Password" 
-                             value={password}
-                             onChange={(e) => setPassword(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                              disabled={isAuthLoading}
                              required
                              className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
-                           />
-                         </div>
-                   )}
+                />
+              </div>
+            )}
          
                    {/* Confirm Password Input (Sign Up Only) */}
-                   {authMode === 'signUp' && (
+            {authMode === 'signUp' && (
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
-                        <Input 
+                <Input
                          type="password" 
                          id="confirm-password-auth" 
                          placeholder="Confirm Password" 
-                         value={confirmPassword}
-                         onChange={(e) => setConfirmPassword(e.target.value)}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                          disabled={isAuthLoading}
                          required
                          className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
-                       />
-                       </div>
-                   )}
+                />
+              </div>
+            )}
                    
                    {/* Name Input (Sign Up Only) */}
-                   {authMode === 'signUp' && (
+            {authMode === 'signUp' && (
                       <div className="relative">
                         <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#e9e2d6]/60" />
-                        <Input 
+                <Input
                          type="text" 
                          id="name-auth" 
                          placeholder="Your Name" 
-                         value={name}
-                         onChange={(e) => setName(e.target.value)}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                          disabled={isAuthLoading}
                          required
                          className="pl-10 bg-[#e9e2d6]/10 border-[#5D4037] text-[#e9e2d6] placeholder:text-[#e9e2d6]/60 focus:border-[#a87b5d] focus-visible:ring-offset-0 focus-visible:ring-0"
-                       />
-                     </div>
-                   )}
+                />
+              </div>
+            )}
                    
                    {/* Verification Needed Message & Resend Button */}
                    {showVerificationNeeded && (
                      <div className="bg-yellow-900/30 border border-yellow-700 text-yellow-300 text-xs p-3 rounded-md text-center space-y-2">
                        <p>Please check your inbox (and spam folder) for the verification email.</p>
-                       <Button
+            <Button
                          variant="link"
                          size="sm"
                          onClick={handleResendVerification}
-                         disabled={isAuthLoading}
+              disabled={isAuthLoading}
                          className="text-yellow-200 hover:text-yellow-100 h-auto p-0 disabled:opacity-50"
                        >
                           {isAuthLoading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Send className="mr-1 h-3 w-3" />} Resend Verification Email
-                       </Button>
+            </Button>
                      </div>
                    )}
                  </div>
@@ -1325,7 +1345,7 @@ const Index = () => {
              </div>
             </div>
         </DialogContent>
-    </Dialog>
+      </Dialog>
         
         <PricingModal 
           isOpen={isPricingModalOpen} 

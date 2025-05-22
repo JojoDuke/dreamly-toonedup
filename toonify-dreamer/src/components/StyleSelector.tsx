@@ -71,7 +71,7 @@ export function StyleSelector({
       <div className="space-y-2">
         <h3 className="font-medium text-lg text-[#5D4037]">Select Style</h3>
         
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 max-h-20 sm:max-h-28 overflow-y-auto custom-scrollbar pr-2">
           {availableStyles.map((style) => (
             <Button
               key={style.id}
