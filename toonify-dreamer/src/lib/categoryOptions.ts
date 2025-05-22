@@ -124,8 +124,8 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
         name: "Comic Book Cover",
       },
       {
-        id: "starrySky",
-        name: "Starry Sky",
+        id: "starryNight",
+        name: "Starry Night",
       },
       {
         id: "graphicArt",
@@ -233,6 +233,10 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
       {
         id: "medievalKnight",
         name: "Medieval Knight",
+      },
+      {
+        id: "gladiator",
+        name: "Gladiator",
       },
     ]
   },
@@ -363,6 +367,14 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
         id: "funkoPop",
         name: "Funko Pop",
       },
+      {
+        id: "actionFigure",
+        name: "Action Figure",
+      },
+      {
+        id: "plushie",
+        name: "Plushie",
+      },
     ],
   },
   // Fashion Model
@@ -431,10 +443,6 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
       {
         id: "noir",
         name: "Noir",
-      },
-      {
-        id: "actionFigure",
-        name: "Action Figure",
       },
       {
         id: "videoGameCover",
