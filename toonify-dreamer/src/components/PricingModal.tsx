@@ -35,8 +35,7 @@ export function PricingModal({ isOpen, onClose, userId }: PricingModalProps) {
       }
       
       // Use PRODUCTION URL
-      const paymentUrl = `https://checkout.dodopayments.com/buy/${productId}?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
-      console.log(`[Payment Modal] Redirecting (${description}) to: ${paymentUrl}`);
+      const paymentUrl = `https://checkout.dodopayments.com/buy/${productId}?quantity=1&redirect_url=https://toonlyai.com&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
       window.location.href = paymentUrl;
   };
 

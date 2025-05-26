@@ -1029,7 +1029,7 @@ const Index = () => {
                         onClick={() => {
                           if (userId && isAuthenticated) {
                             const amountToCredit = 50;
-                            const paymentUrl = `https://checkout.dodopayments.com/buy/pdt_o2dgAidb4HRvBPRhiPIkM?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                            const paymentUrl = `https://checkout.dodopayments.com/buy/pdt_o2dgAidb4HRvBPRhiPIkM?quantity=1&redirect_url=https://toonlyai.com&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
                             console.log(`[Payment] Redirecting (50 credits) to: ${paymentUrl}`);
                             window.location.href = paymentUrl;
                           } else {
@@ -1056,7 +1056,7 @@ const Index = () => {
                         onClick={() => {
                           if (userId && isAuthenticated) {
                             const amountToCredit = 120;
-                            const paymentUrl = `https://checkout.dodopayments.com/buy/pdt_hVW4yq6XK4OVtdfqKEX4b?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                            const paymentUrl = `https://checkout.dodopayments.com/buy/pdt_hVW4yq6XK4OVtdfqKEX4b?quantity=1&redirect_url=https://toonlyai.com&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
                             console.log(`[Payment] Redirecting (120 credits) to: ${paymentUrl}`);
                             window.location.href = paymentUrl;
                           } else {
@@ -1082,7 +1082,7 @@ const Index = () => {
                         onClick={() => {
                           if (userId && isAuthenticated) {
                             const amountToCredit = 300;
-                            const paymentUrl = `https://checkout.dodopayments.com/buy/pdt_OGKnLAgIESKQpdnWp2yCL?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                            const paymentUrl = `https://checkout.dodopayments.com/buy/pdt_OGKnLAgIESKQpdnWp2yCL?quantity=1&redirect_url=https://toonlyai.com&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
                             console.log(`[Payment] Redirecting (300 credits) to: ${paymentUrl}`);
                             window.location.href = paymentUrl;
                           } else {
@@ -1116,7 +1116,7 @@ const Index = () => {
                       onClick={() => {
                         if (userId && isAuthenticated) {
                           const amountToCredit = 0;
-                          const paymentUrl = `https://checkout.dodopayments.com/buy/pdt_3NqIyERjd8icANIGDBrKJ?quantity=1&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
+                          const paymentUrl = `https://checkout.dodopayments.com/buy/pdt_3NqIyERjd8icANIGDBrKJ?quantity=1&redirect_url=https://toonlyai.com&metadata_user_id=${encodeURIComponent(userId)}&metadata_credit_amount=${amountToCredit}`;
                           console.log(`[Payment] Redirecting (Subscription) to: ${paymentUrl}`);
                           window.location.href = paymentUrl;
                         } else {
