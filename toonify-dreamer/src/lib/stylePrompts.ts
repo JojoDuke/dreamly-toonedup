@@ -145,7 +145,7 @@ export const stylePrompts: Record<string, string> = {
   keep their skin color, please, and just keep the face but put them on an actual cricket field with
   a cricket running pose. Put them in any of these teams jersey by random selection.
   The teams are: India, England, Australia, Pakistan, South Africa, West Indies, New Zealand,
-  Bangladesh, Sri Lanka, and the Windies.`,
+  Bangladesh, Sri Lanka.`,
 
   trackRunner: "Turn this image into a photorealistic image of a track runner",
   sumoWrestler: "Turn this image into a photorealistic image of a sumo wrestler",
