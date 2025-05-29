@@ -957,20 +957,20 @@ const Index = () => {
           </section>
 
           {/* TO BE ADDED AS TIME GOES ON */}
-          {/* 
+          
           <section className="py-16 text-center mb-16">
             <h2 className="text-3xl font-bold mb-8 text-white">See the Magic!</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="bg-[#e9e2d6]/70 backdrop-blur-sm rounded-lg playful-shadow playful-border overflow-hidden aspect-square flex items-center justify-center">
                   <div className="w-full h-full bg-[#a87b5d]/30 flex items-center justify-center text-center p-4">
-                    <span className="text-[#3a2e23] font-semibold">Example {i}</span>
+                    <img src={`/images/examples0${i}.png`} alt={`Example ${i}`} className="w-full h-full object-cover" />
                   </div>
                 </div>
               ))}
             </div>
-          </section> 
-          */}
+          </section>
+          
 
           {/* --- Testimonials Section --- */}
           {/* 

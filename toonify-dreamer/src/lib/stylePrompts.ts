@@ -107,19 +107,46 @@ export const stylePrompts: Record<string, string> = {
   bigNate: "Turn this into the Big Nate comic style",
   diaryOfAWimpyKid: "Turn this into the Diary of a Wimpy Kid comic style",
   bookNovelCover: "Make this look like its a book/novel cover",
-  vinylSleeveRockBand: "Make this look like its a vinyl sleeve of a rock band",
+  vinylSleeveRockBand: `The main text should be in extremely complex (almost illegible)
+   lettering typical for hard metal band logos, covering the whole cover. Include this
+    content: front and center: token sounds bottom left corner: abc records
+     (small font size) bottom right corner: barcode the background should be black,
+      text should be white.`,
   collectiblePlayingCards: "Make this look like its a collectible playing card",
   cyberpunk: "Make this look like its a cyberpunk",
   
   
 
   // Athlete
-  footballer: "Turn this image into a photorealistic image of a footballer/soccer player",
-  nbaStar: "Turn this image into a photorealistic image of a NBA star",
-  nflPlayer: "Turn this image into a photorealistic image of a NFL player",
+  footballer: `Turn this image into a photorealistic image of a footballer/soccer player, 
+  keep their skin color, please, and just keep the face but put them on an actual football field with
+  a football running pose. Put them in any of these teams jersey by random selection.
+  The teams are: Manchester United, Liverpool, Chelsea, Arsenal, Manchester City, Tottenham,
+  Aston Villa, Newcastle, Everton, Leeds, West Ham, Crystal Palace, Leicester, Wolves,
+  Southampton, Brentford, Fulham, Bournemouth, Watford, Norwich, and Brighton.`,
+
+  nbaStar: `Turn this image into a photorealistic image of an NBA or WNBA star,
+  keep their skin color, please, and just keep the face but put them on an actual court with
+  a basketball running pose. Put them in any of these teams jersey by random selection.
+  The teams are: Lakers, Celtics, Bulls, Warriors, Nets, Knicks, 76ers, Clippers, Rockets,
+  Mavericks, Suns, Kings, Trail Blazers, Timberwolves, Magic, Pistons, Wizards, Hornets,
+  Bucks, Pacers, Spurs, Raptors, Grizzlies, Pelicans, Thunder, Jazz, Kings, and the Warriors.`,
+
+  nflPlayer: `Turn this image into a photorealistic image of an NFL player,
+  keep their skin color, please, and just keep the face but put them on an actual football field with
+  a football running pose. Put them in any of these teams jersey by random selection.
+  The teams are: Patriots, Steelers, Cowboys, Eagles, Giants, Vikings, Bears, Lions,
+  Buccaneers, Panthers, Falcons, Cardinals, Rams, 49ers, Seahawks, and the Chiefs.`,
+
   tennisPlayer: "Turn this image into a photorealistic image of a tennis player",
   baseballPlayer: "Turn this image into a photorealistic image of a baseball player",
-  cricketPlayer: "Turn this image into a photorealistic image of a cricket player",
+
+  cricketPlayer: `Turn this image into a photorealistic image of a cricket player,
+  keep their skin color, please, and just keep the face but put them on an actual cricket field with
+  a cricket running pose. Put them in any of these teams jersey by random selection.
+  The teams are: India, England, Australia, Pakistan, South Africa, West Indies, New Zealand,
+  Bangladesh, Sri Lanka, and the Windies.`,
+
   trackRunner: "Turn this image into a photorealistic image of a track runner",
   sumoWrestler: "Turn this image into a photorealistic image of a sumo wrestler",
   wwe: "Turn this image into a photorealistic image of a WWE wrestler",
