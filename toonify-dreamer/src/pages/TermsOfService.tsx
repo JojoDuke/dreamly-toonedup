@@ -8,7 +8,7 @@ const TermsOfService = () => {
         <div className="container flex justify-between items-center h-16">
           <div className="flex items-center gap-2">
             <img
-              src="https://i.ibb.co/JfbH12h/Chat-GPT-Image-Apr-3-2025-08-33-33-PM.png"
+              src="https://i.imgur.com/B7ptMnm.png"
               alt="ToonlyAI Logo"
               className="h-12 w-12 object-contain"
               onError={(e) => {

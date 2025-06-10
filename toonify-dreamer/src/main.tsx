@@ -1,13 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Index from './pages/Index.tsx' // Assuming Index is your main page component
-import Legal from './pages/Legal.tsx'
-import PrivacyPolicy from './pages/PrivacyPolicy.tsx'
-import TermsOfService from './pages/TermsOfService.tsx'
-import NotFound from './pages/NotFound.tsx' // Import NotFound
+import App from './App.tsx'
 import './index.css'
-import { Toaster } from "@/components/ui/sonner"
 import ReactGA from 'react-ga4';
 import 'react-loading-skeleton/dist/skeleton.css';
 
@@ -24,15 +18,6 @@ if (gaMeasurementId) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/legal" element={<Legal />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/terms-of-service" element={<TermsOfService />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Toaster />
-    </BrowserRouter>
+    <App />
   </React.StrictMode>,
 )
