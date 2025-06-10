@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { createAuthClient } from "better-auth/client";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +47,10 @@ import { stylePrompts } from '@/lib/stylePrompts';
 const BACKEND_BASE_URL = import.meta.env.VITE_BETTER_AUTH_URL;
 const WIZARD_IMAGE_URL = "https://i.imgur.com/B7ptMnm.png";
 const GALAXY_IMAGE_URL = "/images/theGalazy.png";
+
+const googleAuthClient = createAuthClient({
+  baseURL: `${BACKEND_BASE_URL.replace(/\/$/, '')}/api/auth`
+});
 
 const Index = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -499,23 +504,13 @@ const Index = () => {
      }
   };
 
-  const handleGoogleAuth = async () => {
-    setIsAuthLoading(true);
-    try {
-      const callbackUrl = "https://toonlyai.com";
-      const { data, error } = await authClient.signIn.social({
-        provider: "google",
-        callbackURL: callbackUrl,
-      });
-      if (error) { throw error; }
-      // Note: Google OAuth typically redirects, so success handling may happen on callback
-      toast.success("Redirecting to Google...");
-    } catch (error: any) {
-      console.error("Google auth error:", error);
-      toast.error(error.message || "Google authentication failed. Please try again.");
-      setIsAuthLoading(false);
-    }
-  };
+  const handleLoginWithGoogle = async () => {
+    await googleAuthClient.signIn.social({
+      provider: "google",
+      callbackURL: "https://toonlyai.com",
+    });
+    toast.success("Redirecting to Google...");
+  }
   
   // Restore the handleSignOut function
   const handleSignOut = async () => {
@@ -1319,7 +1314,7 @@ const Index = () => {
                        </div>
                        
                        <Button
-                         onClick={handleGoogleAuth}
+                         onClick={handleLoginWithGoogle}
                          disabled={isAuthLoading}
                          variant="outline"
                          className="w-full bg-white hover:bg-gray-50 text-gray-900 border-gray-300 disabled:opacity-60 flex items-center justify-center gap-2"

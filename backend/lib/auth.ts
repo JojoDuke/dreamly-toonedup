@@ -11,6 +11,12 @@ const theWizardUrl = "https://i.imgur.com/B7ptMnm.png";
 
 dotenv.config({ path: '.env.local' });
 
+// --- Debug: Log Google OAuth env vars (only partial for security) ---
+const idPart = process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.slice(0, 8) + '...' : '<missing>';
+console.log(`[Auth Debug] GOOGLE_CLIENT_ID: ${idPart}`);
+console.log(`[Auth Debug] GOOGLE_CLIENT_SECRET present?:`, !!process.env.GOOGLE_CLIENT_SECRET);
+// --- End Debug ---
+
 console.log("[auth.ts] Creating database pool for auth...");
 const authDbPool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -19,6 +25,13 @@ const authDbPool = new Pool({
 const resend = new Resend(process.env.RESEND_API_KEY); // Initialize Resend once
 
 export const auth = betterAuth({
+    socialProviders: {
+        google: {
+          prompt: "select_account",
+          clientId: process.env.GOOGLE_CLIENT_ID as string,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+        },
+      },
     baseURL: process.env.BETTER_AUTH_URL,
     advanced: {
         crossSubDomainCookies: {
@@ -215,13 +228,4 @@ export const auth = betterAuth({
       // Optionally configure verification token expiry if needed
       // verificationTokenExpiresIn: 3600 * 24 // Example: 24 hours
     },
-    plugins: [ 
-       // REMOVE magicLink plugin
-       /*
-        magicLink({
-            expiresIn: 1800,
-            sendMagicLink: async ({ email, token, url }, request) => { ... }
-        })
-        */
-    ]
 })
