@@ -75,12 +75,12 @@ export function StyleSelector({
           {availableStyles.map((style) => (
             <Button
               key={style.id}
-              variant={selectedStyle === style.id ? "default" : "outline"}
+              variant="ghost"
               className={cn(
-                "h-auto items-start p-3 text-left rounded-full",
+                "h-auto items-start p-3 text-left rounded-full bg-white border border-[#a87b5d] text-[#8b5e3c] hover:border-[#8b5e3c] hover:bg-[#a87b5d]/10",
                 selectedStyle === style.id 
-                  ? "bg-[#a87b5d]/20 border-[#8b5e3c] text-[#3E2723] playful-shadow" 
-                  : "border-[#a87b5d] text-[#5D4037] hover:border-[#8b5e3c] hover:bg-[#a87b5d]/10",
+                  ? "!bg-[#a87b5d]/20 !border-[#8b5e3c] !text-[#5D4037] playful-shadow" 
+                  : "",
                 style.disabled || style.comingSoon ? "opacity-70 cursor-not-allowed" : ""
               )}
               onClick={() => !(style.disabled || style.comingSoon) && onChange(style.id)}
