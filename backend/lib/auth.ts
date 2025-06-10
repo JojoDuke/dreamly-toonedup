@@ -11,12 +11,6 @@ const theWizardUrl = "https://i.imgur.com/B7ptMnm.png";
 
 dotenv.config({ path: '.env.local' });
 
-// --- Debug: Log Google OAuth env vars (only partial for security) ---
-const idPart = process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.slice(0, 8) + '...' : '<missing>';
-console.log(`[Auth Debug] GOOGLE_CLIENT_ID: ${idPart}`);
-console.log(`[Auth Debug] GOOGLE_CLIENT_SECRET present?:`, !!process.env.GOOGLE_CLIENT_SECRET);
-// --- End Debug ---
-
 console.log("[auth.ts] Creating database pool for auth...");
 const authDbPool = new Pool({
     connectionString: process.env.DATABASE_URL,
