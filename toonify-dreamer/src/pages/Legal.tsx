@@ -9,7 +9,7 @@ const Legal = () => {
           <div className="flex items-center gap-2">
             <img
               src="https://i.imgur.com/B7ptMnm.png"
-              alt="ToonlyAI Logo"
+              alt="ToonlyAI Wizard Logo"
               className="h-12 w-12 object-contain"
               onError={(e) => {
                 console.error("Error loading logo:", e);
