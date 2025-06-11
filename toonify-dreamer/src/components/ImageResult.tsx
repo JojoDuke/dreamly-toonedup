@@ -33,9 +33,10 @@ export function ImageResult({
           <p className="text-lg font-medium text-[#5D4037]">Processing image...</p>
           <p className="text-sm text-[#8b5e3c] mt-1">This may take a moment</p>
         </div>
-        <div className="absolute bottom-4 right-4 bg-[#3a2e23]/80 text-white text-xs font-mono px-2 py-1 rounded">
+        {/* COMMENTED OUT: Processing time counter temporarily disabled */}
+        {/* <div className="absolute bottom-4 right-4 bg-[#3a2e23]/80 text-white text-xs font-mono px-2 py-1 rounded">
           {formattedProcessingTime}s
-        </div>
+        </div> */}
       </div>
     );
   }
