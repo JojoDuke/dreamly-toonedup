@@ -311,14 +311,13 @@ async function handleTransformImageLogic(req: Request, res: Response): Promise<v
       quality: "high"
     });
 
-    // 3. Decrement Credits on Success (Keep log for this?) - Removed, let's rely on webhook for source of truth
-    // COMMENTED OUT: Image processing counter temporarily disabled
-    // try {
-    //   await dbClient.query('UPDATE "user" SET credits = credits - $1 WHERE id = $2', [requiredCredits, userId]);
-    // } catch (dbError: any) {
-    //    console.error(`[Transform Image Handler] Error decrementing credits for user ${userId}:`, dbError);
-    //    // Continue anyway
-    // }
+    // 3. Decrement Credits on Success
+    try {
+      await dbClient.query('UPDATE "user" SET credits = credits - $1 WHERE id = $2', [requiredCredits, userId]);
+    } catch (dbError: any) {
+       console.error(`[Transform Image Handler] Error decrementing credits for user ${userId}:`, dbError);
+       // Continue anyway
+    }
 
     // 4. Handle OpenAI Response (expecting b64_json)
     if (response.data && response.data[0]) {
@@ -438,14 +437,13 @@ async function handleEditTransformedImageLogic(req: Request, res: Response): Pro
       quality: "high"
     });
 
-    // 3. Decrement Credits on Success (Keep log for this?) - Removed, let's rely on webhook for source of truth
-    // COMMENTED OUT: Image processing counter temporarily disabled
-    // try {
-    //   await dbClient.query('UPDATE "user" SET credits = credits - $1 WHERE id = $2', [requiredCredits, userId]);
-    // } catch (dbError: any) {
-    //    console.error(`[Edit Transformed Image Handler] Error decrementing credits for user ${userId}:`, dbError);
-    //    // Continue anyway
-    // }
+    // 3. Decrement Credits on Success
+    try {
+      await dbClient.query('UPDATE "user" SET credits = credits - $1 WHERE id = $2', [requiredCredits, userId]);
+    } catch (dbError: any) {
+       console.error(`[Edit Transformed Image Handler] Error decrementing credits for user ${userId}:`, dbError);
+       // Continue anyway
+    }
 
     // 4. Handle OpenAI Response (expecting b64_json)
     if (response.data && response.data[0]) {
