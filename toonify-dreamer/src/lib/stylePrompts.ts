@@ -1,6 +1,6 @@
 export const stylePrompts: Record<string, string> = {
   // Anime
-  ghibli: "Turn this image into Ghibli anime style",
+  ghibli: "Turn this image into Ghibli style",
   onePiece: "Turn this image into One Piece anime style",
   dragonBall: "Turn this image into Dragon Ball Z anime style",
   ninetiesAnime: "Turn this image into 90s anime style",
