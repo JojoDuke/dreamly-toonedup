@@ -223,8 +223,8 @@ app.get('/api/user/status', (req, res) => {
   });
 });
 
-// Define the async function separately
-async function handleEditImageLogic(req: Request, res: Response): Promise<void> {
+// Transform Image Handler (10 credits)
+async function handleTransformImageLogic(req: Request, res: Response): Promise<void> {
   let sessionData;
   // 0. Authentication & Authorization Check
   const headers = new Headers();
@@ -235,7 +235,7 @@ async function handleEditImageLogic(req: Request, res: Response): Promise<void> 
   try {
     sessionData = await auth.api.getSession({ headers });
   } catch (authError) {
-    console.error(`[Edit Image Handler] Error calling auth.api.getSession:`, authError);
+    console.error(`[Transform Image Handler] Error calling auth.api.getSession:`, authError);
     res.status(500).json({ error: 'Internal server error during authentication check.' });
     return;
   }
@@ -250,18 +250,18 @@ async function handleEditImageLogic(req: Request, res: Response): Promise<void> 
   }
   
   let dbClient;
-  let isSubscribedUser = false; // To track if this is a subscribed user edit
+  let isSubscribedUser = false; // To track if this is a subscribed user transform
   
   try {
     dbClient = await pool.connect();
 
     // --- Credit Check & Get Subscription Status ---
-    const requiredCredits = 5;
+    const requiredCredits = 10; // Transform costs 10 credits
     let currentCredits = 0;
     // Fetch credits AND subscription status in one query
     const userResult = await dbClient.query('SELECT credits, subscription_active FROM "user" WHERE id = $1', [userId]);
     if (userResult.rows.length === 0) {
-       console.warn(`[Edit Image Handler] User ${userId} not found in users table.`);
+       console.warn(`[Transform Image Handler] User ${userId} not found in users table.`);
        res.status(404).json({ error: 'User profile not found.' });
        dbClient.release();
        return;
@@ -288,7 +288,7 @@ async function handleEditImageLogic(req: Request, res: Response): Promise<void> 
     }
 
     // LOG TRANSFORM START (Include subscriber status if applicable)
-    console.log(`[Edit Image Handler] User ${userId}${isSubscribedUser ? ' (Subscriber)' : ''} requested transform/edit with prompt: "${prompt}"`);
+    console.log(`[Transform Image Handler] User ${userId}${isSubscribedUser ? ' (Subscriber)' : ''} requested transform with prompt: "${prompt}"`);
 
     // 1. Prepare image data from base64
     const base64Parts = imageBase64.match(/^data:(image\/\w+);base64,(.*)$/);
@@ -312,35 +312,36 @@ async function handleEditImageLogic(req: Request, res: Response): Promise<void> 
     });
 
     // 3. Decrement Credits on Success (Keep log for this?) - Removed, let's rely on webhook for source of truth
-    try {
-      await dbClient.query('UPDATE "user" SET credits = credits - $1 WHERE id = $2', [requiredCredits, userId]);
-    } catch (dbError: any) {
-       console.error(`[Edit Image Handler] Error decrementing credits for user ${userId}:`, dbError);
-       // Continue anyway
-    }
+    // COMMENTED OUT: Image processing counter temporarily disabled
+    // try {
+    //   await dbClient.query('UPDATE "user" SET credits = credits - $1 WHERE id = $2', [requiredCredits, userId]);
+    // } catch (dbError: any) {
+    //    console.error(`[Transform Image Handler] Error decrementing credits for user ${userId}:`, dbError);
+    //    // Continue anyway
+    // }
 
     // 4. Handle OpenAI Response (expecting b64_json)
     if (response.data && response.data[0]) {
       const editedBase64 = response.data[0].b64_json;
       if (editedBase64) {
          // Log successful completion
-         console.log(`[Edit Image Handler] Successfully transformed/edited image for user ${userId}.`);
+         console.log(`[Transform Image Handler] Successfully transformed image for user ${userId}.`);
          res.json({ editedImageBase64: `data:image/png;base64,${editedBase64}` }); 
       } else {
          const url = response.data[0].url;
-         console.error(`[Edit Image Handler] API response missing b64_json for user ${userId}. URL found:`, url || "None");
+         console.error(`[Transform Image Handler] API response missing b64_json for user ${userId}. URL found:`, url || "None");
          res.status(500).json({ error: 'API response did not contain expected image data.' });
       }
     } else {
-      console.error(`[Edit Image Handler] Invalid response structure from OpenAI API for user ${userId}:`, response);
+      console.error(`[Transform Image Handler] Invalid response structure from OpenAI API for user ${userId}:`, response);
       res.status(500).json({ error: 'Invalid response structure from OpenAI API.' });
     }
 
   } catch (error: any) {
-    console.error(`[Edit Image Handler] Error processing image for user ${userId}:`, error);
+    console.error(`[Transform Image Handler] Error processing image for user ${userId}:`, error);
     const errorMessage = error.response?.data?.error?.message || error.message || "Unknown error occurred";
     const errorStatus = error.response?.status || 500;
-    res.status(errorStatus).json({ error: 'Failed to edit image, image format should only be PNG, JPG or WEBP.', details: errorMessage });
+    res.status(errorStatus).json({ error: 'Failed to transform image, image format should only be PNG, JPG or WEBP.', details: errorMessage });
   } finally {
     // Ensure database client is always released
     if (dbClient) {
@@ -349,10 +350,147 @@ async function handleEditImageLogic(req: Request, res: Response): Promise<void> 
   }
 }
 
-// Image Editing Endpoint - Wrap the async function call
-app.post('/api/edit-image', (req: Request, res: Response) => {
-  handleEditImageLogic(req, res).catch(err => {
-    console.error("[Server] Unhandled error in route wrapper for handleEditImageLogic:", err);
+// Edit Transformed Image Handler (5 credits)
+async function handleEditTransformedImageLogic(req: Request, res: Response): Promise<void> {
+  let sessionData;
+  // 0. Authentication & Authorization Check
+  const headers = new Headers();
+  Object.entries(req.headers).forEach(([key, value]) => {
+    if (value) { headers.append(key, Array.isArray(value) ? value.join(', ') : value); }
+  });
+
+  try {
+    sessionData = await auth.api.getSession({ headers });
+  } catch (authError) {
+    console.error(`[Edit Transformed Image Handler] Error calling auth.api.getSession:`, authError);
+    res.status(500).json({ error: 'Internal server error during authentication check.' });
+    return;
+  }
+
+  // --- Try assertion with optional chaining --- 
+  const userId = (sessionData?.session as any)?.userId as string | undefined;
+  // --- End Try assertion --- 
+
+  if (!userId) {
+    res.status(401).json({ error: 'Unauthorized: No active session or user ID.' });
+    return;
+  }
+  
+  let dbClient;
+  let isSubscribedUser = false; // To track if this is a subscribed user edit
+  
+  try {
+    dbClient = await pool.connect();
+
+    // --- Credit Check & Get Subscription Status ---
+    const requiredCredits = 5; // Edit costs 5 credits
+    let currentCredits = 0;
+    // Fetch credits AND subscription status in one query
+    const userResult = await dbClient.query('SELECT credits, subscription_active FROM "user" WHERE id = $1', [userId]);
+    if (userResult.rows.length === 0) {
+       console.warn(`[Edit Transformed Image Handler] User ${userId} not found in users table.`);
+       res.status(404).json({ error: 'User profile not found.' });
+       dbClient.release();
+       return;
+    }
+    currentCredits = userResult.rows[0].credits;
+    isSubscribedUser = userResult.rows[0].subscription_active || false; // Check subscription
+
+    if (currentCredits < requiredCredits) {
+      res.status(402).json({ error: `Insufficient credits. Need ${requiredCredits}, have ${currentCredits}.` });
+      dbClient.release();
+      return;
+    }
+    
+    const { prompt, imageBase64 } = req.body;
+
+    // Basic validation
+    if (!prompt || !imageBase64) {
+      res.status(400).json({ error: 'Prompt and imageBase64 are required in the request body.' });
+      return; 
+    }
+    if (!imageBase64.startsWith('data:image/')) {
+       res.status(400).json({ error: 'imageBase64 does not seem to be a valid data URL.'});
+       return; 
+    }
+
+    // LOG EDIT START (Include subscriber status if applicable)
+    console.log(`[Edit Transformed Image Handler] User ${userId}${isSubscribedUser ? ' (Subscriber)' : ''} requested edit with prompt: "${prompt}"`);
+
+    // 1. Prepare image data from base64
+    const base64Parts = imageBase64.match(/^data:(image\/\w+);base64,(.*)$/);
+    if (!base64Parts || base64Parts.length !== 3) {
+       res.status(400).json({ error: 'Invalid imageBase64 format.' });
+       return; 
+    }
+    const imageType = base64Parts[1]; 
+    const base64Data = base64Parts[2];
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+    const preparedImage = await toFile(imageBuffer, 'inputImage.png', { type: imageType }); 
+
+    // 2. Call the images.edit endpoint with gpt-image-1
+    const response = await client.images.edit({
+      model: "gpt-image-1", 
+      image: preparedImage,
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",
+      quality: "high"
+    });
+
+    // 3. Decrement Credits on Success (Keep log for this?) - Removed, let's rely on webhook for source of truth
+    // COMMENTED OUT: Image processing counter temporarily disabled
+    // try {
+    //   await dbClient.query('UPDATE "user" SET credits = credits - $1 WHERE id = $2', [requiredCredits, userId]);
+    // } catch (dbError: any) {
+    //    console.error(`[Edit Transformed Image Handler] Error decrementing credits for user ${userId}:`, dbError);
+    //    // Continue anyway
+    // }
+
+    // 4. Handle OpenAI Response (expecting b64_json)
+    if (response.data && response.data[0]) {
+      const editedBase64 = response.data[0].b64_json;
+      if (editedBase64) {
+         // Log successful completion
+         console.log(`[Edit Transformed Image Handler] Successfully edited transformed image for user ${userId}.`);
+         res.json({ editedImageBase64: `data:image/png;base64,${editedBase64}` }); 
+      } else {
+         const url = response.data[0].url;
+         console.error(`[Edit Transformed Image Handler] API response missing b64_json for user ${userId}. URL found:`, url || "None");
+         res.status(500).json({ error: 'API response did not contain expected image data.' });
+      }
+    } else {
+      console.error(`[Edit Transformed Image Handler] Invalid response structure from OpenAI API for user ${userId}:`, response);
+      res.status(500).json({ error: 'Invalid response structure from OpenAI API.' });
+    }
+
+  } catch (error: any) {
+    console.error(`[Edit Transformed Image Handler] Error processing image for user ${userId}:`, error);
+    const errorMessage = error.response?.data?.error?.message || error.message || "Unknown error occurred";
+    const errorStatus = error.response?.status || 500;
+    res.status(errorStatus).json({ error: 'Failed to edit transformed image, image format should only be PNG, JPG or WEBP.', details: errorMessage });
+  } finally {
+    // Ensure database client is always released
+    if (dbClient) {
+      dbClient.release();
+    }
+  }
+}
+
+// Transform Image Endpoint (10 credits) - Wrap the async function call
+app.post('/api/transform-image', (req: Request, res: Response) => {
+  handleTransformImageLogic(req, res).catch(err => {
+    console.error("[Server] Unhandled error in route wrapper for handleTransformImageLogic:", err);
+    if (!res.headersSent) {
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+  });
+});
+
+// Edit Transformed Image Endpoint (5 credits) - Wrap the async function call
+app.post('/api/edit-transformed-image', (req: Request, res: Response) => {
+  handleEditTransformedImageLogic(req, res).catch(err => {
+    console.error("[Server] Unhandled error in route wrapper for handleEditTransformedImageLogic:", err);
     if (!res.headersSent) {
         res.status(500).json({ error: 'Internal server error.' });
     }
