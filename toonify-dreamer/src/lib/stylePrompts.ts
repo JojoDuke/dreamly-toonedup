@@ -55,7 +55,7 @@ export const stylePrompts: Record<string, string> = {
   asians have light yellow skin, blacks have black skin, 
   indians have brown skin and mexicans/hispanics also have yellow skin.`,
   funkoPop: "Make this look like its a Funko Pop",
-  actionFigure: "Make this look like its an action figure",
+  actionFigure: "Make this look like its a action figure, the 3D stylized collectible toy blister pack style",
   plushie: "Make this look like its a plushie",
   
   // Other
@@ -138,8 +138,14 @@ export const stylePrompts: Record<string, string> = {
   The teams are: Patriots, Steelers, Cowboys, Eagles, Giants, Vikings, Bears, Lions,
   Buccaneers, Panthers, Falcons, Cardinals, Rams, 49ers, Seahawks, and the Chiefs.`,
 
-  tennisPlayer: "Turn this image into a photorealistic image of a tennis player",
-  baseballPlayer: "Turn this image into a photorealistic image of a baseball player",
+  tennisPlayer: `Turn this image into a photorealistic image of a tennis player, 
+  keep their skin color, please, and just keep the face but put them on an actual tennis court with
+  a tennis running or actionpose.`,
+
+  baseballPlayer: `Turn this image into a photorealistic image of a baseball player,
+  keep their skin color, please, and just keep the face but put them on an actual baseball field with
+  a baseball running pose. Put them in any of these teams jersey by random selection.
+  The teams are: Yankees, Red Sox, Cubs, Dodgers, Giants, Nationals, Astros, Marlins, and the Braves.`,
 
   cricketPlayer: `Turn this image into a photorealistic image of a cricket player,
   keep their skin color, please, and just keep the face but put them on an actual cricket field with
@@ -147,12 +153,18 @@ export const stylePrompts: Record<string, string> = {
   The teams are: India, England, Australia, Pakistan, South Africa, West Indies, New Zealand,
   Bangladesh, Sri Lanka.`,
 
-  trackRunner: "Turn this image into a photorealistic image of a track runner",
+  trackRunner: `Turn this image into a photorealistic image of a track runner, 
+  keep their skin color, please, and just keep the face but put them on an actual track with
+  a track running pose.`,
+
   sumoWrestler: "Turn this image into a photorealistic image of a sumo wrestler",
-  wwe: "Turn this image into a photorealistic image of a WWE wrestler",
+
+  wwe: `Turn this image into a photorealistic image of a WWE wrestler, 
+  keep their skin color, please, and just keep the face but put them on an actual wrestling ring with
+  a wrestling pose.`,
 
   // Memes
-  doge: "Turn this image into a photorealistic image of a doge",
+  doge: "Turn this image into a photorealistic image of a doge",//
   absoluteCinema: "Turn this image into a photorealistic image of the absolute cinema meme",//
   disasterGirl: "Turn this image into a photorealistic image of the disaster girl meme",//
 

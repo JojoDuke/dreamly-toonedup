@@ -256,7 +256,7 @@ async function handleEditImageLogic(req: Request, res: Response): Promise<void> 
     dbClient = await pool.connect();
 
     // --- Credit Check & Get Subscription Status ---
-    const requiredCredits = 10;
+    const requiredCredits = 5;
     let currentCredits = 0;
     // Fetch credits AND subscription status in one query
     const userResult = await dbClient.query('SELECT credits, subscription_active FROM "user" WHERE id = $1', [userId]);

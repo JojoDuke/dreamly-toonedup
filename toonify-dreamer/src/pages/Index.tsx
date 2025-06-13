@@ -307,7 +307,7 @@ const Index = () => {
       toast.info("Please enter your desired edits in the text box.");
       return;
     }
-    if (credits < 10) {
+    if (credits < 5) {
         toast.error("Not enough credits to edit.");
         setIsPricingModalOpen(true);
         return;
@@ -924,7 +924,7 @@ const Index = () => {
                           alt="Credit Icon" 
                           className="h-4 w-4"
                         />
-                        <span>10</span>
+                        <span>5</span>
                       </>
                     )}
                   </Button>
