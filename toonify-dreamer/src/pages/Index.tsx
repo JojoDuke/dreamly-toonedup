@@ -438,6 +438,9 @@ const Index = () => {
       toast.error("Please enter both email and password.");
       return;
     }
+    if (isAuthLoading) {
+      return; // Prevent multiple clicks while loading
+    }
     setIsAuthLoading(true);
     setShowVerificationNeeded(false); 
     try {
@@ -1173,14 +1176,27 @@ const Index = () => {
           </section>
            
           <footer className="mt-16 pt-8 text-center text-sm text-[#f4efe4]/90 border-t border-[#f4efe4]/20 [text-shadow:1px_1px_1px_rgba(93,64,55,0.6)]">
-        <div className="flex flex-wrap items-center justify-center space-x-4">
+        <div className="flex flex-wrap items-center justify-center space-x-4 mb-4">
             <Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
           <span>•</span>
             <Link to="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</Link>
           <span>•</span>
             <Link to="/legal" className="hover:text-white transition-colors">Legal</Link>
         </div>
-        <p className="mt-2 mb-4">© {new Date().getFullYear()} ToonlyAI. All rights reserved.</p>
+        
+        <p className="text-[#f4efe4]/80 mb-3">Built with ❤️ by Bhyte Labs</p>
+        
+        <div className="mb-4">
+          <p className="text-[#f4efe4]/70 text-xs">
+            We also built: 
+            <a href="https://usemidas.app" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors opacity-80 hover:opacity-100 ml-1">Midas</a> <span className="mx-3">•</span> 
+            <a href="https://astrae.design" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors opacity-80 hover:opacity-100">Astrae</a> <span className="mx-3">•</span> 
+            <a href="https://usepapermind.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors opacity-80 hover:opacity-100">Papermind AI</a> <span className="mx-3">•</span> 
+            <a href="https://builtwithatlas.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors opacity-80 hover:opacity-100">Atlas Labs</a> <span className="mx-3">•</span> 
+            <a href="https://studioix.agency" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors opacity-80 hover:opacity-100">Studio IX</a>
+          </p>
+        </div>
+        <p className="mb-4">© {new Date().getFullYear()} ToonlyAI. All rights reserved.</p>
       </footer>
     </main>
     
@@ -1300,6 +1316,42 @@ const Index = () => {
             </Button>
                      </div>
                    )}
+                 </div>
+       
+                 {/* Use a standard div instead of DialogFooter */}
+                 <div className="mt-6 flex flex-col w-full gap-3"> 
+                   {/* Button Wrapper - Keep w-full */}
+                   <div className="w-full"> 
+                     {/* ... Sign In Button ... */}
+                     {authMode === 'signIn' && (
+                       <Button 
+                         onClick={handleSignIn} 
+                         className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow flex items-center justify-center"
+                       >
+                         {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserIcon className="mr-2 h-4 w-4" />} Sign In
+                       </Button>
+                     )}
+                     {/* ... Sign Up Button ... */}
+                     {authMode === 'signUp' && (
+                       <Button 
+                         onClick={handleSignUp} 
+                         disabled={isAuthLoading || !email || !password || !confirmPassword || !name}
+                         className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
+                       >
+                          {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />} Sign Up
+                       </Button>
+                     )}
+                     {/* ... Forgot Password Button ... */}
+                     {authMode === 'forgotPassword' && (
+                       <Button 
+                         onClick={handleForgotPassword} 
+                         disabled={isAuthLoading || !email}
+                         className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
+                       >
+                          {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />} Send Reset Link
+                       </Button>
+                     )}
+                   </div>
 
                    {/* Google Auth Section - Only show for sign in and sign up */}
                    {(authMode === 'signIn' || authMode === 'signUp') && (
@@ -1329,43 +1381,6 @@ const Index = () => {
                        </Button>
                      </>
                    )}
-                 </div>
-       
-                 {/* Use a standard div instead of DialogFooter */}
-                 <div className="mt-6 flex flex-col w-full gap-3"> 
-                   {/* Button Wrapper - Keep w-full */}
-                   <div className="w-full"> 
-                     {/* ... Sign In Button ... */}
-                     {authMode === 'signIn' && (
-                       <Button 
-                         onClick={handleSignIn} 
-                         disabled={isAuthLoading || !email || !password}
-                         className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
-                       >
-                         {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserIcon className="mr-2 h-4 w-4" />} Sign In
-                       </Button>
-                     )}
-                     {/* ... Sign Up Button ... */}
-                     {authMode === 'signUp' && (
-                       <Button 
-                         onClick={handleSignUp} 
-                         disabled={isAuthLoading || !email || !password || !confirmPassword || !name}
-                         className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
-                       >
-                          {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />} Sign Up
-                       </Button>
-                     )}
-                     {/* ... Forgot Password Button ... */}
-                     {authMode === 'forgotPassword' && (
-                       <Button 
-                         onClick={handleForgotPassword} 
-                         disabled={isAuthLoading || !email}
-                         className="w-full bg-[#8b5e3c] hover:bg-[#6d4c30] text-[#FFF8E1] playful-shadow disabled:opacity-60 flex items-center justify-center"
-                       >
-                          {isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />} Send Reset Link
-                       </Button>
-                     )}
-                   </div>
                    
                    {/* Links Wrapper - Keep w-full and text-[11px] */}
                    <div className="text-center text-[11px] mt-2 w-full"> 

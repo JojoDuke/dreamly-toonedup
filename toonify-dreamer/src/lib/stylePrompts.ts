@@ -165,7 +165,7 @@ export const stylePrompts: Record<string, string> = {
 
   // Memes
   doge: "Turn this image into a photorealistic image of a doge",//
-  absoluteCinema: "Turn this image into a photorealistic image of the absolute cinema meme",//
+  absoluteCinema: "Take the face on the right, and put it on the face/meme on the left, so that it looks like the absolute cinema meme, make sure the body and head proportions are right and the skin colors too",
   disasterGirl: "Turn this image into a photorealistic image of the disaster girl meme",//
 
   // History
