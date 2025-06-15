@@ -3,9 +3,9 @@
 ## Required Steps:
 
 1. **Save the Template Image**: 
-   - Save your absolute cinema template image as `absolute-cinema-template.jpg` in the `public/images/` directory
-   - The file must be in JPG format
-   - The file must be named exactly `absolute-cinema-template.jpg`
+   - Save your absolute cinema template image as `absolute-cinema-template.png` in the `public/images/` directory
+   - The file must be in PNG format
+   - The file must be named exactly `absolute-cinema-template.png`
 
 2. **How it Works**:
    - When users select "Absolute Cinema" style and click transform, the system automatically detects the special prompt
@@ -26,6 +26,6 @@
 
 ## Troubleshooting:
 
-- Make sure the template image exists at `public/images/absolute-cinema-template.jpg`
+- Make sure the template image exists at `public/images/absolute-cinema-template.png`
 - Check the server logs for any "Template image not found" errors
-- Ensure the template image is in JPG format, not PNG 
+- Ensure the template image is in PNG format, not JPG 

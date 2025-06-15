@@ -293,14 +293,14 @@ async function handleTransformImageLogic(req: Request, res: Response): Promise<v
     console.log(`[Transform Image Handler] User ${userId}${isSubscribedUser ? ' (Subscriber)' : ''} requested transform with prompt: "${prompt}"`);
 
     // Check if this is an absolute cinema request
-    const isAbsoluteCinema = prompt.includes("Take the face on the right, and put it on the face/meme on the left, so that it looks like the absolute cinema meme");
+    const isAbsoluteCinema = prompt.includes("Take the first face, and put it on the face/meme of absolute cinema");
     
     let response;
     if (isAbsoluteCinema) {
       // Handle absolute cinema with multiple images
       console.log(`[Transform Image Handler] Detected absolute cinema request for user ${userId}`);
       
-      // 1. Prepare user image from base64
+      // 1. Prepare user image from base64 (this will be the FIRST image - the face to transfer)
       const userBase64Parts = imageBase64.match(/^data:(image\/\w+);base64,(.*)$/);
       if (!userBase64Parts || userBase64Parts.length !== 3) {
          res.status(400).json({ error: 'Invalid imageBase64 format.' });
@@ -309,15 +309,15 @@ async function handleTransformImageLogic(req: Request, res: Response): Promise<v
       const userImageType = userBase64Parts[1]; 
       const userBase64Data = userBase64Parts[2];
       const userImageBuffer = Buffer.from(userBase64Data, 'base64');
-      const userImage = await toFile(userImageBuffer, 'userImage.png', { type: userImageType }); 
+      const userImage = await toFile(userImageBuffer, 'userFace.png', { type: 'image/png' }); 
 
-      // 2. Load absolute cinema template
-      let absoluteCinemaBase64;
+      // 2. Load absolute cinema template (this will be the SECOND image - the meme template)
+      let templateImage;
       try {
-        const templatePath = path.join(process.cwd(), 'public', 'images', 'absolute-cinema-template.jpg');
+        const templatePath = path.join(process.cwd(), 'public', 'images', 'absolute-cinema-template.png');
         if (fs.existsSync(templatePath)) {
-          const templateBuffer = fs.readFileSync(templatePath);
-          absoluteCinemaBase64 = `data:image/jpeg;base64,${templateBuffer.toString('base64')}`;
+          // Use fs.createReadStream like in your working example
+          templateImage = await toFile(fs.createReadStream(templatePath), 'absoluteCinema.png', { type: 'image/png' });
         } else {
           console.error(`[Transform Image Handler] Template image not found at ${templatePath}`);
           res.status(500).json({ error: 'Absolute cinema template image not found on server.' });
@@ -329,23 +329,14 @@ async function handleTransformImageLogic(req: Request, res: Response): Promise<v
         return;
       }
 
-      // 3. Prepare template image
-      const templateBase64Parts = absoluteCinemaBase64.match(/^data:(image\/\w+);base64,(.*)$/);
-      if (!templateBase64Parts || templateBase64Parts.length !== 3) {
-         res.status(400).json({ error: 'Invalid template format.' });
-         return; 
-      }
-      const templateImageType = templateBase64Parts[1]; 
-      const templateBase64Data = templateBase64Parts[2];
-      const templateImageBuffer = Buffer.from(templateBase64Data, 'base64');
-      const templateImage = await toFile(templateImageBuffer, 'absoluteCinemaTemplate.png', { type: templateImageType }); 
-
-      // 4. Call the images.edit endpoint with multiple images
-      const images = [templateImage, userImage]; // Template first (left), user image second (right)
+      // 3. Call the images.edit endpoint with multiple images (user face first, template second)
+      const images = [userImage, templateImage]; // Face first, then absolute cinema template
+      const absoluteCinemaPrompt = "Take the first face, and put it on the face/meme of absolute cinema, so that it looks like the absolute cinema meme, make sure the body and head proportions are right and the skin colors too";
+      
       response = await client.images.edit({
         model: "gpt-image-1", 
         image: images,
-        prompt: prompt,
+        prompt: absoluteCinemaPrompt, // Use the exact prompt that worked for you
         n: 1,
         size: "1024x1024",
         quality: "high"
