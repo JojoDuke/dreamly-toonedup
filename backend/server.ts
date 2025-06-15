@@ -309,18 +309,25 @@ async function handleTransformImageLogic(req: Request, res: Response): Promise<v
       const userImageType = userBase64Parts[1]; 
       const userBase64Data = userBase64Parts[2];
       const userImageBuffer = Buffer.from(userBase64Data, 'base64');
-      const userImage = await toFile(userImageBuffer, 'userFace.png', { type: 'image/png' }); 
+      // Handle different image formats (png, jpeg, jpg)
+      const userImage = await toFile(userImageBuffer, 'userFace.png', { type: userImageType }); 
 
       // 2. Load absolute cinema template (this will be the SECOND image - the meme template)
       let templateImage;
       try {
-        const templatePath = path.join(process.cwd(), 'public', 'images', 'absolute-cinema-template.png');
+        // Template is in backend root folder
+        const templatePath = path.join(process.cwd(), 'absolute-cinema-template.png');
+        
+        console.log(`[Transform Image Handler] Current working directory: ${process.cwd()}`);
+        console.log(`[Transform Image Handler] Looking for template at: ${templatePath}`);
+        
         if (fs.existsSync(templatePath)) {
+          console.log(`[Transform Image Handler] Found template at: ${templatePath}`);
           // Use fs.createReadStream like in your working example
           templateImage = await toFile(fs.createReadStream(templatePath), 'absolute-cinema-template.png', { type: 'image/png' });
         } else {
-          console.error(`[Transform Image Handler] Template image not found at ${templatePath}`);
-          res.status(500).json({ error: 'Absolute cinema template image not found on server.' });
+          console.error(`[Transform Image Handler] Template image not found at: ${templatePath}`);
+          res.status(500).json({ error: 'Absolute cinema template image not found on server. Please check server logs for details.' });
           return;
         }
       } catch (fileError) {
