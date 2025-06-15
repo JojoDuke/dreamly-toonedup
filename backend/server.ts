@@ -292,13 +292,15 @@ async function handleTransformImageLogic(req: Request, res: Response): Promise<v
     // LOG TRANSFORM START (Include subscriber status if applicable)
     console.log(`[Transform Image Handler] User ${userId}${isSubscribedUser ? ' (Subscriber)' : ''} requested transform with prompt: "${prompt}"`);
 
-    // Check if this is an absolute cinema request
+    // Check if this is a multi-image meme request
     const isAbsoluteCinema = prompt.includes("Take the first face, and put it on the face/meme of absolute cinema");
+    const isDisasterGirl = prompt.includes("Take the first face, and put it on the face/meme of the second");
     
     let response;
-    if (isAbsoluteCinema) {
-      // Handle absolute cinema with multiple images
-      console.log(`[Transform Image Handler] Detected absolute cinema request for user ${userId}`);
+    if (isAbsoluteCinema || isDisasterGirl) {
+      // Handle multi-image meme requests (absolute cinema or disaster girl)
+      const memeType = isAbsoluteCinema ? 'absolute cinema' : 'disaster girl';
+      console.log(`[Transform Image Handler] Detected ${memeType} request for user ${userId}`);
       
       // 1. Prepare user image from base64 (this will be the FIRST image - the face to transfer)
       const userBase64Parts = imageBase64.match(/^data:(image\/\w+);base64,(.*)$/);
@@ -312,38 +314,38 @@ async function handleTransformImageLogic(req: Request, res: Response): Promise<v
       // Handle different image formats (png, jpeg, jpg)
       const userImage = await toFile(userImageBuffer, 'userFace.png', { type: userImageType }); 
 
-      // 2. Load absolute cinema template (this will be the SECOND image - the meme template)
+      // 2. Load meme template (this will be the SECOND image - the meme template)
       let templateImage;
       try {
-        // Template is in backend root folder
-        const templatePath = path.join(process.cwd(), 'absolute-cinema-template.png');
+        // Determine which template to use
+        const templateFileName = isAbsoluteCinema ? 'absolute-cinema-template.png' : 'disaster-girl-template.png';
+        const templatePath = path.join(process.cwd(), templateFileName);
         
         console.log(`[Transform Image Handler] Current working directory: ${process.cwd()}`);
-        console.log(`[Transform Image Handler] Looking for template at: ${templatePath}`);
+        console.log(`[Transform Image Handler] Looking for ${memeType} template at: ${templatePath}`);
         
         if (fs.existsSync(templatePath)) {
-          console.log(`[Transform Image Handler] Found template at: ${templatePath}`);
+          console.log(`[Transform Image Handler] Found ${memeType} template at: ${templatePath}`);
           // Use fs.createReadStream like in your working example
-          templateImage = await toFile(fs.createReadStream(templatePath), 'absolute-cinema-template.png', { type: 'image/png' });
+          templateImage = await toFile(fs.createReadStream(templatePath), templateFileName, { type: 'image/png' });
         } else {
-          console.error(`[Transform Image Handler] Template image not found at: ${templatePath}`);
-          res.status(500).json({ error: 'Absolute cinema template image not found on server. Please check server logs for details.' });
+          console.error(`[Transform Image Handler] ${memeType} template image not found at: ${templatePath}`);
+          res.status(500).json({ error: `${memeType} template image not found on server. Please check server logs for details.` });
           return;
         }
       } catch (fileError) {
-        console.error(`[Transform Image Handler] Error loading template image:`, fileError);
-        res.status(500).json({ error: 'Error loading absolute cinema template.' });
+        console.error(`[Transform Image Handler] Error loading ${memeType} template image:`, fileError);
+        res.status(500).json({ error: `Error loading ${memeType} template.` });
         return;
       }
 
       // 3. Call the images.edit endpoint with multiple images (user face first, template second)
-      const images = [userImage, templateImage]; // Face first, then absolute cinema template
-      const absoluteCinemaPrompt = "Take the first face, and put it on the face/meme of absolute cinema, so that it looks like the absolute cinema meme, make sure the body and head proportions are right and the skin colors too";
+      const images = [userImage, templateImage]; // Face first, then meme template
       
       response = await client.images.edit({
         model: "gpt-image-1", 
         image: images,
-        prompt: absoluteCinemaPrompt, // Use the exact prompt that worked for you
+        prompt: prompt, // Use the exact prompt from stylePrompts
         n: 1,
         size: "1024x1024",
         quality: "high"
