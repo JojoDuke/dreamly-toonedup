@@ -292,26 +292,87 @@ async function handleTransformImageLogic(req: Request, res: Response): Promise<v
     // LOG TRANSFORM START (Include subscriber status if applicable)
     console.log(`[Transform Image Handler] User ${userId}${isSubscribedUser ? ' (Subscriber)' : ''} requested transform with prompt: "${prompt}"`);
 
-    // 1. Prepare image data from base64
-    const base64Parts = imageBase64.match(/^data:(image\/\w+);base64,(.*)$/);
-    if (!base64Parts || base64Parts.length !== 3) {
-       res.status(400).json({ error: 'Invalid imageBase64 format.' });
-       return; 
-    }
-    const imageType = base64Parts[1]; 
-    const base64Data = base64Parts[2];
-    const imageBuffer = Buffer.from(base64Data, 'base64');
-    const preparedImage = await toFile(imageBuffer, 'inputImage.png', { type: imageType }); 
+    // Check if this is an absolute cinema request
+    const isAbsoluteCinema = prompt.includes("Take the face on the right, and put it on the face/meme on the left, so that it looks like the absolute cinema meme");
+    
+    let response;
+    if (isAbsoluteCinema) {
+      // Handle absolute cinema with multiple images
+      console.log(`[Transform Image Handler] Detected absolute cinema request for user ${userId}`);
+      
+      // 1. Prepare user image from base64
+      const userBase64Parts = imageBase64.match(/^data:(image\/\w+);base64,(.*)$/);
+      if (!userBase64Parts || userBase64Parts.length !== 3) {
+         res.status(400).json({ error: 'Invalid imageBase64 format.' });
+         return; 
+      }
+      const userImageType = userBase64Parts[1]; 
+      const userBase64Data = userBase64Parts[2];
+      const userImageBuffer = Buffer.from(userBase64Data, 'base64');
+      const userImage = await toFile(userImageBuffer, 'userImage.png', { type: userImageType }); 
 
-    // 2. Call the images.edit endpoint with gpt-image-1
-    const response = await client.images.edit({
-      model: "gpt-image-1", 
-      image: preparedImage,
-      prompt: prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "high"
-    });
+      // 2. Load absolute cinema template
+      let absoluteCinemaBase64;
+      try {
+        const templatePath = path.join(process.cwd(), 'public', 'images', 'absolute-cinema-template.jpg');
+        if (fs.existsSync(templatePath)) {
+          const templateBuffer = fs.readFileSync(templatePath);
+          absoluteCinemaBase64 = `data:image/jpeg;base64,${templateBuffer.toString('base64')}`;
+        } else {
+          console.error(`[Transform Image Handler] Template image not found at ${templatePath}`);
+          res.status(500).json({ error: 'Absolute cinema template image not found on server.' });
+          return;
+        }
+      } catch (fileError) {
+        console.error(`[Transform Image Handler] Error loading template image:`, fileError);
+        res.status(500).json({ error: 'Error loading absolute cinema template.' });
+        return;
+      }
+
+      // 3. Prepare template image
+      const templateBase64Parts = absoluteCinemaBase64.match(/^data:(image\/\w+);base64,(.*)$/);
+      if (!templateBase64Parts || templateBase64Parts.length !== 3) {
+         res.status(400).json({ error: 'Invalid template format.' });
+         return; 
+      }
+      const templateImageType = templateBase64Parts[1]; 
+      const templateBase64Data = templateBase64Parts[2];
+      const templateImageBuffer = Buffer.from(templateBase64Data, 'base64');
+      const templateImage = await toFile(templateImageBuffer, 'absoluteCinemaTemplate.png', { type: templateImageType }); 
+
+      // 4. Call the images.edit endpoint with multiple images
+      const images = [templateImage, userImage]; // Template first (left), user image second (right)
+      response = await client.images.edit({
+        model: "gpt-image-1", 
+        image: images,
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "high"
+      });
+    } else {
+      // Handle regular single image transform
+      // 1. Prepare image data from base64
+      const base64Parts = imageBase64.match(/^data:(image\/\w+);base64,(.*)$/);
+      if (!base64Parts || base64Parts.length !== 3) {
+         res.status(400).json({ error: 'Invalid imageBase64 format.' });
+         return; 
+      }
+      const imageType = base64Parts[1]; 
+      const base64Data = base64Parts[2];
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      const preparedImage = await toFile(imageBuffer, 'inputImage.png', { type: imageType }); 
+
+      // 2. Call the images.edit endpoint with gpt-image-1
+      response = await client.images.edit({
+        model: "gpt-image-1", 
+        image: preparedImage,
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "high"
+      });
+    }
 
     // 3. Decrement Credits on Success
     try {
@@ -530,7 +591,7 @@ async function handleAbsoluteCinemaLogic(req: Request, res: Response): Promise<v
     dbClient = await pool.connect();
 
     // --- Credit Check & Get Subscription Status ---
-    const requiredCredits = 15; // Absolute Cinema costs 15 credits (more complex transformation)
+    const requiredCredits = 10;
     let currentCredits = 0;
     // Fetch credits AND subscription status in one query
     const userResult = await dbClient.query('SELECT credits, subscription_active FROM "user" WHERE id = $1', [userId]);
