@@ -317,7 +317,7 @@ async function handleTransformImageLogic(req: Request, res: Response): Promise<v
         const templatePath = path.join(process.cwd(), 'public', 'images', 'absolute-cinema-template.png');
         if (fs.existsSync(templatePath)) {
           // Use fs.createReadStream like in your working example
-          templateImage = await toFile(fs.createReadStream(templatePath), 'absoluteCinema.png', { type: 'image/png' });
+          templateImage = await toFile(fs.createReadStream(templatePath), 'absolute-cinema-template.png', { type: 'image/png' });
         } else {
           console.error(`[Transform Image Handler] Template image not found at ${templatePath}`);
           res.status(500).json({ error: 'Absolute cinema template image not found on server.' });
