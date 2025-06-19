@@ -76,7 +76,7 @@ export const stylePrompts: Record<string, string> = {
   fullBeard: "Make this person have a full beard",
   
   
-  // Fashion Model
+  //Fashion Model
   model: `Take this face and make a photorealistic image where they are a model posing for a clothing brand,
     the background is clear white background with realistic shadows and lighting and it should be a full
     body pose seeing them from head to toe, the clothes they wear should be what you see in the image provided,
