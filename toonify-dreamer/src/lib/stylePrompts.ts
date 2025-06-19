@@ -76,7 +76,6 @@ export const stylePrompts: Record<string, string> = {
   fullBeard: "Make this person have a full beard",
   
   
-  
   // Fashion Model
   model: `Take this face and make a photorealistic image where they are a model posing for a clothing brand,
     the background is clear white background with realistic shadows and lighting and it should be a full
@@ -90,6 +89,9 @@ export const stylePrompts: Record<string, string> = {
   highFashion: `Take this face and make a photorealistic image of them as a high fashion model, in a high fashion
    outfit. By high fashion I mean those very upscale and expensive and kinda weird avant garde fashion
     that you see these days`,
+  cinematicOverhead: `Take this face and make a photorealistic image of them in a cinematic overhead shot, standing
+  still on a brick city sidewalk, wearing a dark oversized sweater. Motion-blurred crowd rushes past around them.
+  Moody lighting, 35mm film look, shallow depth of field, sharp focus on the face. Ratio portrait 4:3.`,
 
   // Pop Culture
   moviePoster: `Take this image and put it in a 70s movie poster style, with random text at the bottom 

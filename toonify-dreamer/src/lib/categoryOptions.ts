@@ -406,6 +406,10 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
         id: "highFashion",
         name: "High Fashion",
       },
+      {
+        id: "cinematicOverhead",
+        name: "Cinematic Overhead",
+      }
     ],
   },
   // Memes
