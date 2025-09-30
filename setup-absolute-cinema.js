@@ -6,7 +6,7 @@ console.log('');
 
 // Check current working directory
 console.log(`Current working directory: ${process.cwd()}`);
-console.log('');
+console.log('')
 
 // Check possible locations where the template should be placed
 const possibleLocations = [
