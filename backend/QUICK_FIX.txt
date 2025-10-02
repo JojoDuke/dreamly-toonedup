@@ -1,0 +1,36 @@
+====================================================
+QUICK FIX - If you're getting OpenAI errors
+====================================================
+
+The error "TypeError: Client.__init__() got an unexpected keyword argument 'proxies'"
+means you have incompatible package versions.
+
+TO FIX IT NOW:
+
+1. Open terminal in the backend folder
+2. Run this command:
+
+   fix_install.bat
+
+That's it! The script will:
+- Uninstall all packages
+- Clear cache
+- Reinstall with correct versions
+- Start the server
+
+====================================================
+
+ALTERNATIVE (Manual Fix):
+------------------------
+
+If the script doesn't work, do this manually:
+
+cd backend
+venv\Scripts\activate
+pip uninstall openai httpx -y
+pip cache purge
+pip install --no-cache-dir openai==1.51.0 httpx==0.25.2
+python start.py
+
+====================================================
+

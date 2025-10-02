@@ -1,0 +1,8 @@
+# Copy this file to .env.local and fill in your actual values
+
+# OpenAI API Configuration (REQUIRED)
+OPENAI_API_KEY=sk-your-actual-openai-api-key-here
+
+# PostgreSQL Database (OPTIONAL - leave empty if you don't have database)
+DATABASE_URL=postgresql://user:password@localhost:5432/database_name
+
