@@ -360,16 +360,18 @@ const Index = () => {
       toast.info("Please upload an image first.");
       return;
     }
-    if (!isAuthenticated) {
-      toast.info("Please sign in to transform images.");
-      triggerAuthModal();
-      return;
-    }
-    if (credits < 10) {
-      toast.error("Not enough credits to transform.");
-      setIsPricingModalOpen(true);
-      return;
-    }
+    // Removed auth check - allow anyone to transform images
+    // if (!isAuthenticated) {
+    //   toast.info("Please sign in to transform images.");
+    //   triggerAuthModal();
+    //   return;
+    // }
+    // Removed credit check - allow free transforms
+    // if (credits < 10) {
+    //   toast.error("Not enough credits to transform.");
+    //   setIsPricingModalOpen(true);
+    //   return;
+    // }
     if (isProcessing || isEditing) {
         toast.info("Please wait for the current process to finish.");
         return;

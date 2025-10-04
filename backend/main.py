@@ -130,9 +130,7 @@ async def call_openai_transform(image_buffer: bytes, prompt: str, filename: str 
             image=image_file,
             prompt=prompt,
             n=1,
-            size="1024x1024",
-            quality="high",
-            response_format="b64_json"
+            size="1024x1024"
         )
         
         if response.data and response.data[0]:
@@ -166,9 +164,7 @@ async def call_openai_multi_image(images: list[bytes], prompt: str) -> str:
             image=image_files,
             prompt=prompt,
             n=1,
-            size="1024x1024",
-            quality="high",
-            response_format="b64_json"
+            size="1024x1024"
         )
         
         if response.data and response.data[0]:
@@ -284,11 +280,9 @@ async def get_user_status(request: Request):
 
 @app.post("/api/transform-image")
 async def transform_image(request: TransformRequest):
-    """Transform image endpoint (10 credits) - simplified without auth"""
-    # Mock user for now
-    user_id = "test-user-001"
+    """Transform image endpoint - NO AUTH, NO CREDITS - completely free"""
+    logger.info(f"[Transform Image Handler] Received transform request with prompt: '{request.prompt}'")
     
-    db_client = None
     try:
         # Basic validation
         if not request.prompt or not request.imageBase64:
@@ -297,23 +291,6 @@ async def transform_image(request: TransformRequest):
         if not request.imageBase64.startswith('data:image/'):
             raise HTTPException(status_code=400, detail="imageBase64 does not seem to be a valid data URL.")
         
-        # Database connection for credit check
-        db_client = await get_db_connection()
-        
-        # Credit check (if DB available)
-        if db_client:
-            required_credits = 10
-            user_result = await db_client.fetchrow('SELECT credits, subscription_active FROM "user" WHERE id = $1', user_id)
-            
-            if user_result:
-                current_credits = user_result['credits']
-                is_subscribed = user_result['subscription_active'] or False
-                
-                if current_credits < required_credits:
-                    raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {required_credits}, have {current_credits}.")
-                
-                logger.info(f"[Transform Image Handler] User {user_id}{'(Subscriber)' if is_subscribed else ''} requested transform with prompt: '{request.prompt}'")
-        
         # Check if this is a multi-image meme request
         is_absolute_cinema = "Take the first face, and put it on the face/meme of absolute cinema" in request.prompt
         is_disaster_girl = "Take the first face, and put it on the face/meme of the second" in request.prompt
@@ -321,7 +298,7 @@ async def transform_image(request: TransformRequest):
         if is_absolute_cinema or is_disaster_girl:
             # Handle multi-image meme requests
             meme_type = 'absolute cinema' if is_absolute_cinema else 'disaster girl'
-            logger.info(f"[Transform Image Handler] Detected {meme_type} request for user {user_id}")
+            logger.info(f"[Transform Image Handler] Detected {meme_type} request")
             
             # Parse user image
             image_type, user_image_buffer = parse_base64_image(request.imageBase64)
@@ -338,34 +315,21 @@ async def transform_image(request: TransformRequest):
             image_type, image_buffer = parse_base64_image(request.imageBase64)
             result = await call_openai_transform(image_buffer, request.prompt, "inputImage.png")
         
-        # Decrement credits on success (if DB available)
-        if db_client and user_result:
-            try:
-                await db_client.execute('UPDATE "user" SET credits = credits - $1 WHERE id = $2', required_credits, user_id)
-                logger.info(f"[Transform Image Handler] Deducted {required_credits} credits from user {user_id}")
-            except Exception as db_error:
-                logger.error(f"[Transform Image Handler] Error decrementing credits for user {user_id}: {db_error}")
-        
-        logger.info(f"[Transform Image Handler] Successfully transformed image for user {user_id}")
+        logger.info(f"[Transform Image Handler] Successfully transformed image")
         return {"editedImageBase64": result}
         
     except HTTPException:
         raise
     except Exception as error:
-        logger.error(f"[Transform Image Handler] Error processing image for user {user_id}: {error}")
+        logger.error(f"[Transform Image Handler] Error processing image: {error}")
         error_message = str(error) if error else "Unknown error occurred"
         raise HTTPException(status_code=500, detail=f"Failed to transform image, image format should only be PNG, JPG or WEBP. Details: {error_message}")
-    finally:
-        if db_client and db_pool:
-            await db_pool.release(db_client)
 
 @app.post("/api/edit-transformed-image")
 async def edit_transformed_image(request: EditRequest):
-    """Edit transformed image endpoint (5 credits) - simplified without auth"""
-    # Mock user for now
-    user_id = "test-user-001"
+    """Edit transformed image endpoint - NO AUTH, NO CREDITS - completely free"""
+    logger.info(f"[Edit Transformed Image Handler] Received edit request with prompt: '{request.prompt}'")
     
-    db_client = None
     try:
         # Basic validation
         if not request.prompt or not request.imageBase64:
@@ -374,55 +338,25 @@ async def edit_transformed_image(request: EditRequest):
         if not request.imageBase64.startswith('data:image/'):
             raise HTTPException(status_code=400, detail="imageBase64 does not seem to be a valid data URL.")
         
-        # Database connection for credit check
-        db_client = await get_db_connection()
-        
-        # Credit check (if DB available)
-        if db_client:
-            required_credits = 5  # Edit costs 5 credits
-            user_result = await db_client.fetchrow('SELECT credits, subscription_active FROM "user" WHERE id = $1', user_id)
-            
-            if user_result:
-                current_credits = user_result['credits']
-                is_subscribed = user_result['subscription_active'] or False
-                
-                if current_credits < required_credits:
-                    raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {required_credits}, have {current_credits}.")
-                
-                logger.info(f"[Edit Transformed Image Handler] User {user_id}{'(Subscriber)' if is_subscribed else ''} requested edit with prompt: '{request.prompt}'")
-        
         # Parse and process image
         image_type, image_buffer = parse_base64_image(request.imageBase64)
         result = await call_openai_transform(image_buffer, request.prompt, "inputImage.png")
         
-        # Decrement credits on success (if DB available)
-        if db_client and user_result:
-            try:
-                await db_client.execute('UPDATE "user" SET credits = credits - $1 WHERE id = $2', required_credits, user_id)
-                logger.info(f"[Edit Transformed Image Handler] Deducted {required_credits} credits from user {user_id}")
-            except Exception as db_error:
-                logger.error(f"[Edit Transformed Image Handler] Error decrementing credits for user {user_id}: {db_error}")
-        
-        logger.info(f"[Edit Transformed Image Handler] Successfully edited transformed image for user {user_id}")
+        logger.info(f"[Edit Transformed Image Handler] Successfully edited transformed image")
         return {"editedImageBase64": result}
         
     except HTTPException:
         raise
     except Exception as error:
-        logger.error(f"[Edit Transformed Image Handler] Error processing image for user {user_id}: {error}")
+        logger.error(f"[Edit Transformed Image Handler] Error processing image: {error}")
         error_message = str(error) if error else "Unknown error occurred"
         raise HTTPException(status_code=500, detail=f"Failed to edit transformed image, image format should only be PNG, JPG or WEBP. Details: {error_message}")
-    finally:
-        if db_client and db_pool:
-            await db_pool.release(db_client)
 
 @app.post("/api/absolute-cinema")
 async def absolute_cinema(request: AbsoluteCinemaRequest):
-    """Absolute Cinema Meme endpoint (10 credits) - simplified without auth"""
-    # Mock user for now
-    user_id = "test-user-001"
+    """Absolute Cinema Meme endpoint - NO AUTH, NO CREDITS - completely free"""
+    logger.info(f"[Absolute Cinema Handler] Received absolute cinema meme request")
     
-    db_client = None
     try:
         # Basic validation
         if not request.userImageBase64:
@@ -430,23 +364,6 @@ async def absolute_cinema(request: AbsoluteCinemaRequest):
         
         if not request.userImageBase64.startswith('data:image/'):
             raise HTTPException(status_code=400, detail="userImageBase64 does not seem to be a valid data URL.")
-        
-        # Database connection for credit check
-        db_client = await get_db_connection()
-        
-        # Credit check (if DB available)
-        if db_client:
-            required_credits = 10
-            user_result = await db_client.fetchrow('SELECT credits, subscription_active FROM "user" WHERE id = $1', user_id)
-            
-            if user_result:
-                current_credits = user_result['credits']
-                is_subscribed = user_result['subscription_active'] or False
-                
-                if current_credits < required_credits:
-                    raise HTTPException(status_code=402, detail=f"Insufficient credits. Need {required_credits}, have {current_credits}.")
-                
-                logger.info(f"[Absolute Cinema Handler] User {user_id}{'(Subscriber)' if is_subscribed else ''} requested absolute cinema meme transformation")
         
         # Parse user image
         user_image_type, user_image_buffer = parse_base64_image(request.userImageBase64)
@@ -481,26 +398,15 @@ async def absolute_cinema(request: AbsoluteCinemaRequest):
         # Call OpenAI with multiple images
         result = await call_openai_multi_image(images, absolute_cinema_prompt)
         
-        # Decrement credits on success (if DB available)
-        if db_client and user_result:
-            try:
-                await db_client.execute('UPDATE "user" SET credits = credits - $1 WHERE id = $2', required_credits, user_id)
-                logger.info(f"[Absolute Cinema Handler] Deducted {required_credits} credits from user {user_id}")
-            except Exception as db_error:
-                logger.error(f"[Absolute Cinema Handler] Error decrementing credits for user {user_id}: {db_error}")
-        
-        logger.info(f"[Absolute Cinema Handler] Successfully created absolute cinema meme for user {user_id}")
+        logger.info(f"[Absolute Cinema Handler] Successfully created absolute cinema meme")
         return {"editedImageBase64": result}
         
     except HTTPException:
         raise
     except Exception as error:
-        logger.error(f"[Absolute Cinema Handler] Error processing absolute cinema meme for user {user_id}: {error}")
+        logger.error(f"[Absolute Cinema Handler] Error processing absolute cinema meme: {error}")
         error_message = str(error) if error else "Unknown error occurred"
         raise HTTPException(status_code=500, detail=f"Failed to create absolute cinema meme, image format should only be PNG, JPG or WEBP. Details: {error_message}")
-    finally:
-        if db_client and db_pool:
-            await db_pool.release(db_client)
 
 if __name__ == "__main__":
     # Start server on same port as your Node.js backend
